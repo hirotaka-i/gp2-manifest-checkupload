@@ -1,0 +1,5 @@
+data/*
+secrets/*
+log.txt
+Pipfile.lock
+Pipfile
