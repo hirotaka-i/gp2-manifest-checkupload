@@ -5,12 +5,13 @@ except Exception as e:
     print("Some modules are not installed {}".format(e))
 
 def app():
+
     st.markdown("""
     <style>
     .big-font {
         font-family:Helvetica; color:#0f557a; font-size:48px !important;
     }
-    .medium-fond {
+    .medium-font {
         font-family:Arial; color:000000; font-size:18px;
     }
     </style>
