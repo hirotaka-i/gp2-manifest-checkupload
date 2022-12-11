@@ -83,7 +83,7 @@ def app():
                         'Bone Marrow Aspirate', 'Whole BMA', 'CD3+ BMA', 'Other']
         fulgent_cols = ['DNA_volume', 'DNA_conc', 'Plate_name', 'Plate_position']
         
-        data_file = st.sidebar.file_uploader("Upload Sample Manifest (CSV/XLSX) [Currently only CSV!]", type=['csv', 'xlsx'])
+        data_file = st.sidebar.file_uploader("Upload Sample Manifest (CSV/XLSX)", type=['csv', 'xlsx'])
 
         file_type = ["CSV", "TSV"]
         output_choice = st.sidebar.selectbox("Select the output format of your sample manifest", file_type)
