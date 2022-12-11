@@ -11,6 +11,7 @@ try:
 except Exception as e:
     print("Some modules are not installed {}".format(e))
 
+
 def app():
     
     st.markdown("""
@@ -24,6 +25,10 @@ def app():
     </style>
     """, unsafe_allow_html=True)
 
+    def jumptwice():
+        st.write("##")
+        st.write("##")
+
     def read_file(data_file):
         if data_file.type == "text/csv":
             df = pd.read_csv(data_file)
@@ -31,15 +36,23 @@ def app():
             df = pd.read_excel(data_file, sheet_name=0)
         return (df)
 
-    def get_table_download_link(df):
+    def get_table_download_link(df, filetype = "CSV"):
         """Generates a link allowing the data in a given panda dataframe to be downloaded
-        in:  dataframe
+        in tsv or csv format
         out: href string
         """
-        csv = df.to_csv(index=False)
+        #today = dt.datetime.today()
+        #version = f'{today.year}{today.month}{today.day}'
+
         study_code = df.study.unique()[0]
-        b64 = base64.b64encode(csv.encode()).decode()  # some strings <-> bytes conversions necessary here
-        href = f'<a href="data:file/csv;base64,{b64}"  download="{study_code}_sample_manifest_selfQC_{version}.csv">Download csv file</a>'
+        if filetype == "CSV":
+            csv = df.to_csv(index=False)
+            b64 = base64.b64encode(csv.encode()).decode()  # some strings <-> bytes conversions necessary here
+            href = f'<a href="data:file/csv;base64,{b64}"  download="{study_code}_sample_manifest_selfQC.csv">Download csv file</a>'
+        else:
+            tsv = df.to_csv(index=False, sep="\t")
+            b64 = base64.b64encode(tsv.encode()).decode()  # some strings <-> bytes conversions necessary here
+            href = f'<a href="data:file/tsv;base64,{b64}"  download="{study_code}_sample_manifest_selfQC.tsv">Download tsv file</a>'
         return href
         
     # @st.cache
@@ -50,32 +63,42 @@ def app():
     def main():
         menu = ["For Fulgent", "For NIH"]
         choice = st.sidebar.selectbox("Menu",menu)
-        flag=0
+        
         ph_conf=''
         sex_conf=''
         race_conf = ''
         fh_conf=''
+        
         cols = ['study', 'sample_id', 'sample_type',
-            'DNA_volume', 'DNA_conc', 'r260_280',
-            'Plate_name', 'Plate_position', 'clinical_id', 
-            'study_arm', 'sex', 'race', 
-            'age', 'age_of_onset', 'age_at_diagnosis', 'age_at_death', 'family_history',
-            'region', 'comment', 'alternative_id1', 'alternative_id2']
+                'DNA_volume', 'DNA_conc', 'r260_280',
+                'Plate_name', 'Plate_position', 'clinical_id', 
+                'study_arm', 'sex', 'race', 
+                'age', 'age_of_onset', 'age_at_diagnosis', 'age_at_death', 'family_history',
+                'region', 'comment', 'alternative_id1', 'alternative_id2']
         required_cols = ['study', 'sample_id', 'sample_type', 'clinical_id','study_arm', 'sex']
-        allowed_samples=['Blood (EDTA)', 'Blood (ACD)', 'Blood', 'DNA', 
-                        'DNA from blood', 'DNA from FFPE', 'RNA', 'Saliva', 
+        allowed_samples=['Blood (EDTA)', 'Blood (ACD)', 'Blood', 'DNA',
+                        'DNA from blood', 'DNA from FFPE', 'RNA', 'Saliva',
                         'Buccal Swab', 'T-25 Flasks (Amniotic)', 'FFPE Slide',
-                        'FFPE Block', 'Fresh tissue', 'Frozen tissue', 
+                        'FFPE Block', 'Fresh tissue', 'Frozen tissue',
                         'Bone Marrow Aspirate', 'Whole BMA', 'CD3+ BMA', 'Other']
         fulgent_cols = ['DNA_volume', 'DNA_conc', 'Plate_name', 'Plate_position']
-        data_file = st.sidebar.file_uploader("Upload Sample Manifest (CSV/XLSX) [Currently only CSV!]", type=['csv', 'xlsx'])
         
+        data_file = st.sidebar.file_uploader("Upload Sample Manifest (CSV/XLSX) [Currently only CSV!]", type=['csv', 'xlsx'])
+
+        file_type = ["CSV", "TSV"]
+        output_choice = st.sidebar.selectbox("Select the output format of your sample manifest", file_type)
+        
+        # Process allowed_samples
+        allowed_samples_strp = [samptype.strip().replace(" ", "") for samptype in allowed_samples]
 
         st.markdown('<p class="big-font">GP2 sample manifest self-QC</p>', unsafe_allow_html=True)
         #st.title("GP2 sample manifest self-QC web app")
         st.markdown('<p class="medium-font"> This is a web app to self-check the sample manifest </p>', unsafe_allow_html=True)
+        st.markdown('<p class="medium-font"> Download the template from the link below. Once you open the link, go to "File"> "Download" as xlsx/csv). </p>', unsafe_allow_html=True )
         st.write('https://docs.google.com/spreadsheets/d/1ThpUVBCRaPdDSiQiKZVwFpwWbW8mZxhqurv7-jBPrM4')
-        st.markdown('<p class="medium-font"> Please refer to the second tab (Dictionary) for instruction </p>', unsafe_allow_html=True)
+        st.markdown('<p class="medium-font"> Please refer to the second tab (Dictionary) for instructions </p>', unsafe_allow_html=True)
+        st.markdown('<p class="medium-font"> Once all the GP2 required columns are present in your manifest, please upload the sample manifest on the side bar for self QC.  </p>', unsafe_allow_html=True)
+        
         #st.text('This is a web app to self-check the sample manifest')
         #st.text('The template download from the below link (go to "File"> "Download" as xlsx/csv)')
         
@@ -97,8 +120,7 @@ def app():
             missing_cols = np.setdiff1d(cols, df.columns)
             if len(missing_cols)>0:
                 st.error(f'{missing_cols} are missing. Please use the template sheet')
-                return
-            
+                st.stop()
             else:
                 st.text('Check column names--> OK')
                 df_non_miss_check = df[required_cols].copy()
@@ -108,18 +130,16 @@ def app():
                 st.error('There are some missing entries in the required columns. Please fill the missing cells ')
                 st.text('First ~30 columns with missing data in any required fields')
                 st.write(df_non_miss_check[df_non_miss_check.isna().sum(1)>0].head(20))
-                flag=1
-            
+                st.stop()
             else:
                 st.text('Check missing data in the required fields --> OK')
-                sample_id_dup = df.sample_id[df.sample_id.duplicated()].unique()
+                sample_id_dup = df.sample_id[df.sample_id.duplicated()].unique()    
             
             # sample dup check
             if len(sample_id_dup)>0:
-                sample_id_dup = df.sample_id[df.sample_id.duplicated()].unique()
                 st.text(f'Duplicated sample_id:{sample_id_dup}')
                 st.error(f'Unique sample IDs are required (clinical IDs can be duplicated if replicated)')
-                flag=1
+                st.stop()
             else:
                 st.text(f'Check sample_id duplicaiton --> OK')
                 st.text(f'N of sample_id (entries):{df.shape[0]}')
@@ -130,14 +150,30 @@ def app():
             st.write(df.sample_type.astype('str').value_counts())
             not_allowed = np.setdiff1d(df.sample_type.unique(), allowed_samples)
             if len(not_allowed)>0:
-                st.error(f'sample_type: {not_allowed} not allowed.')
-                sample_list = '\n * '.join(allowed_samples)
-                st.text(f'Allowed sample list - \n * {sample_list}')
-                flag=1
+                sampletype = df.sample_type
+                sampletype = sampletype.str.strip().replace(" ", "")
+                not_allowed_v2 = np.setdiff1d(sampletype.unique(), allowed_samples_strp)
+                
+                if len(not_allowed_v2) < len(not_allowed):
+                    st.text('We have found some undesired whitespaces in some sample type values.')
+                        
+                    if len(not_allowed_v2)>0:
+                        st.text('In addition, we have found unknown sample types')
+                        st.error(f'sample_type: {not_allowed} not allowed.')
+                        sample_list = '\n * '.join(allowed_samples)
+                        st.text(f'Allowed sample list - \n * {sample_list}')
+                        st.stop()
 
-
+                    else: # Map the stripped sample types back to the harmonised names
+                        st.text('Processing whitespaces found in certain sample_type entries')
+                        stype_map = dict(zip(allowed_samples_strp, allowed_samples))
+                        newsampletype = sampletype.replace(stype_map)
+                        df['sample_type'] = newsampletype
+                        st.text('sample type after removing undesired whitespaces')
+                        st.write(df.sample_type.astype('str').value_counts())
 
             # study_arm --> Phenotype
+            jumptwice()
             st.subheader('Create "Phenotype"')
             st.text('Count per study_arm')
             st.write(df.study_arm.astype('str').value_counts())
@@ -162,6 +198,7 @@ def app():
             
 
             # sex for qc
+            jumptwice()
             st.subheader('Create "sex_for_qc"')
             st.text('Count per sex group')
             st.write(df.sex.astype('str').value_counts())
@@ -178,7 +215,7 @@ def app():
             # cross-tabulation of study_arm and Phenotype
             st.text('=== sex_for_qc x sex ===')
             xtab = df.pivot_table(index='sex_for_qc', columns='sex', margins=True,
-                                    values='sample_id', aggfunc='count', fill_value=0)
+                                    values='sample_id', aggfunc='count', fill_value=0)            
             st.write(xtab)
             
             sex_conf = st.checkbox('Confirm sex_for_qc?')
@@ -186,6 +223,7 @@ def app():
                 st.info('Thank you')
 
             # race for qc
+            jumptwice()
             st.subheader('Create "race_for_qc"')
             st.text('Count per race (Not Reported = missing)')
             df['race_for_qc'] = df.race.fillna('Not Reported')
@@ -218,6 +256,7 @@ def app():
             
 
             # family history for qc
+            jumptwice()
             st.subheader('Create "family_history_for_qc"')
             st.text('Count per family_history category (Not Reported = missing)')
             df['family_history_for_qc'] = df.family_history.fillna('Not Reported')
@@ -249,8 +288,8 @@ def app():
             if fh_conf:
                 st.info('Thank you')
 
-
-            # region for qc
+            # Region for qc
+            jumptwice()
             st.subheader('Create "region_for_qc"')
             st.text('Count per region (Not Reported = missing)')
             df['region_for_qc'] = df.region.fillna('Not Reported')
@@ -282,19 +321,18 @@ def app():
                                     values='sample_id', aggfunc='count', fill_value=0)
             st.write(xtab)
 
-            rg_conf = st.checkbox('Confirm regino_for_qc?')
+            rg_conf = st.checkbox('Confirm region_for_qc?')
             if rg_conf:
                 if len(regions)!=(len(mapdic)-1):
-                    st.error('region not assigned')
-                    flag=1
+                    st.error('region not assigned.')
+                    st.text("Please, assing the region, and re upload the sample manifest")
+                    st.stop()
                 else:
                     st.info('Thank you')
 
 
-
-
-
             # Plate Info
+            jumptwice()
             st.subheader('Plate Info')
             dft = df.copy()
             dft['Plate_name'] = dft.Plate_name.fillna('_Missing')
@@ -310,53 +348,51 @@ def app():
                 if plate!='_Missing':
                     if len(df_plate_pos)>96:
                         st.error('Please make sure, N of samples on plate [{plate}] is =<96')
-                        flag=1
+                        st.stop()
                     dup_pos = df_plate_pos[df_plate_pos.duplicated()].unique()
                     if len(dup_pos)>0:
                         st.error(f' !!!SERIOUS ERROR!!!  Plate position duplicated position {dup_pos} on plate [{plate}]')
-                        flag=1
+                        st.stop()
 
             # Numeric values
+            jumptwice()
             st.subheader('Numeric Values')
             numerics_cols = ['DNA_volume', 'DNA_conc', 'r260_280','age', 'age_of_onset', 'age_at_diagnosis', 'age_at_death']
-            flag3 = 0
             for v in numerics_cols:
                 if df.dtypes[v] not in ['float64', 'int64']:
                     st.error(f'{v} is not numeric')
-                    flag=1
-                    flag3=1
-            if flag3==0:
-                st.text('Numeric chek --> OK. Check the distribution with the below button')
+                    st.text("Please, make sure expected numeric columns are stored on a numeric format")
+                    st.text(f'Expected columns in numeric format - \n * {numerics_cols}')
+                    st.stop()
+            st.text('Numeric chek --> OK.')
+            st.text('You can check the distribution with the button below')
+            if st.button("Check Distribution"):
+                for v in numerics_cols:
+                    nmiss = df[v].isna().sum()
+                    vuniq = df[v].dropna().unique()
+                    nuniq = len(vuniq)
+                    if nuniq==0:
+                        st.text(f'{v} - All missing')
+                    elif nuniq==1:
+                        st.text(f'{v} - One value = {vuniq[0]}, ({nmiss} entries missing)')
+                    elif nuniq <6:
+                        st.write(df[v].value_counts(dropna=False))
+                    else:
+                        st.text(f'{v} - histgram ({nmiss} entries missing)')
+                        hist_values=np.histogram(df[v].dropna())[0]
+                        st.bar_chart(hist_values, )
 
-                if st.button("Check Distribution"):
-                    for v in numerics_cols:
-                        nmiss = df[v].isna().sum()
-                        vuniq = df[v].dropna().unique()
-                        nuniq = len(vuniq)
-                        if nuniq==0:
-                            st.text(f'{v} - All missing')
-                        elif nuniq==1:
-                            st.text(f'{v} - One value = {vuniq[0]}, ({nmiss} entries missing)')
-                        elif nuniq <6:
-                            st.write(df[v].value_counts(dropna=False))
-                        else:
-                            st.text(f'{v} - histgram ({nmiss} entries missing)')
-                            hist_values=np.histogram(df[v].dropna())[0]
-                            st.bar_chart(hist_values, )
-
-            # Sample Submitter
-            st.subheader('Sample Submitter')
-            Submitter = st.text_input('First name initial + ". (dot&space)" + last name" (e.g.- H. Morris)')
-            df['Sample_submitter'] = Submitter
 
             if st.button("Finished?"):
-                st.text("If everything is good, you will see the download link for the qced data")
-                if flag==1:
-                    st.error('Some errors still exist (red comment). Please check the original data for missing etc')
-                elif not Submitter:
-                    st.error('Have you input the submitter?')
-                elif not (ph_conf & sex_conf & race_conf & fh_conf & rg_conf):
-                    st.error('Forget to confirm?')
+                if not (ph_conf & sex_conf & race_conf & fh_conf & rg_conf):
+                    st.error('Did you forget to confirm any of the steps above?')
+                    st.text("Please, tick all the boxes from all QC steps if all your samples were on the GP2 standard format")
                 else:
-                    st.markdown(get_table_download_link(df), unsafe_allow_html=True)
+                    st.markdown('<p class="medium-font"> CONGRATS, your sample manifest meets all the GP2 requirements. </p>', unsafe_allow_html=True )
+                    st.markdown('<p class="medium-font"> Please, download it from the link below, and go to the last tab for upload to the GP2 storage system in Google Cloud. </p>', unsafe_allow_html=True )
+                    if output_choice == "CSV":
+                        st.markdown(get_table_download_link(df), unsafe_allow_html=True)
+                    else:
+                        st.markdown(get_table_download_link(df, filetype=output_choice), unsafe_allow_html=True)
+
     main()
