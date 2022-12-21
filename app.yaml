@@ -1,3 +1,3 @@
-service: samplemanifestqc-app
+service: samplemanifest-qcupload
 runtime: custom
 env: flex
