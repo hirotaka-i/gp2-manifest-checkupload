@@ -7,6 +7,7 @@ try:
     import numpy as np
     import base64
     import datetime as dt
+    import matplotlib.pyplot as plt
 
 except Exception as e:
     print("Some modules are not installed {}".format(e))
@@ -403,9 +404,12 @@ def app():
                     elif nuniq <6:
                         st.write(df[v].value_counts(dropna=False))
                     else:
-                        st.text(f'{v} - histgram ({nmiss} entries missing)')
-                        hist_values=np.histogram(df[v].dropna())[0]
-                        st.bar_chart(hist_values, )
+                        st.text(f'{v} - histogram ({nmiss} entries missing)')
+                        fig, ax = plt.subplots(figsize=(11,6))
+                        ax.hist(df[v].values, bins=20)
+                        st.pyplot(fig)
+                    
+                    jumptwice()
 
 
             if st.button("Finished?"):
