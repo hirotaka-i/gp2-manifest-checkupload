@@ -11,6 +11,7 @@ except Exception as e:
 
 # Setup the GCP Creds
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
+
 # def get_date():
 #     """ Get year month day sample manifest was uploaded """
 #     dates = [str(datetime.now().year) , str(datetime.now().month), str(datetime.now().day)]
@@ -26,15 +27,15 @@ def read_manifest(file_extension, source_file):
         data = str(source_file.read(), "utf-8")
     return data
 
-def view_manifest(source_file, file_extension):
-    """Preview uploaded sample manifest"""
-    if file_extension in [".csv", ".tsv"]:
-        bytes_data = source_file.getvalue()
-        data = bytes_data.decode('utf-8').splitlines()
-        st.session_state["preview"] = ''
-        for i in range(0, min(5, len(data))):
-            st.session_state["preview"] += data[i]    
-        preview = st.text_area("DATA PREVIEW", "", height = 150, key = "preview")
+# def view_manifest(source_file, file_extension):
+#     """Preview uploaded sample manifest"""
+#     if file_extension in [".csv", ".tsv"]:
+#         bytes_data = source_file.getvalue()
+#         data = bytes_data.decode('utf-8').splitlines()
+#         st.session_state["preview"] = ''
+#         for i in range(0, min(5, len(data))):
+#             st.session_state["preview"] += data[i]    
+#         preview = st.text_area("DATA PREVIEW", "", height = 150, key = "preview")
 
 def upload_data(bucket_name, data, destination):
     """Upload a file to the bucket."""
@@ -82,7 +83,20 @@ def app():
         file_details = {"FileName":source_file.name,
                         "FileType":source_file.type,"FileSize":source_file.size}
         file_name, file_extension = os.path.splitext(file_details["FileName"])
-        view_manifest(source_file, file_extension)
+        #view_manifest(source_file, file_extension)
+        
+        if file_extension == ".csv":
+            df = pd.read_csv(source_file).head(10)
+        elif file_extension == ".tsv":
+            df = pd.read_csv(source_file, sep = '\t').head(10)
+        else:
+            st.error("The self-QC tool generated files in CSV/TSV format only")
+            st.error("Please, make sure you are uploading the self-QC sample manifest generated on the QC tab")
+            st.stop()
+        
+        st.dataframe(
+            df.style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
+        )
         manifest_check = st.selectbox(
         "Does the format look correct",
         ["Yes", "No"]
