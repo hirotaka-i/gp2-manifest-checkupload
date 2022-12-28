@@ -11,13 +11,12 @@ except Exception as e:
 
 # Setup the GCP Creds
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
-
-def get_date():
-    """ Get year month day sample manifest was uploaded """
-    dates = [str(datetime.now().year) , str(datetime.now().month), str(datetime.now().day)]
-    #mydate = 
-    #return(currentMonth, currentYear)
-    return "".join(dates)
+# def get_date():
+#     """ Get year month day sample manifest was uploaded """
+#     dates = [str(datetime.now().year) , str(datetime.now().month), str(datetime.now().day)]
+#     #mydate = 
+#     #return(currentMonth, currentYear)
+#     return "".join(dates)
 
 def read_manifest(file_extension, source_file):
     """Read the manifest uploaded to the app"""
@@ -94,7 +93,8 @@ def app():
             if study_name:
                 if manifest_check == "Yes":
                     bucket_name = "eu-samplemanifest"
-                    destination = os.path.join(study_name, file_name + "_" + get_date() + file_extension)
+                    #destination = os.path.join(study_name, file_name + "_" + get_date() + file_extension)
+                    destination = os.path.join(study_name, file_name + file_extension)
                     data = read_manifest(file_extension, source_file)
                     check = upload_data(bucket_name, data, destination)
                     st.markdown(
