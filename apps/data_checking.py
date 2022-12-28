@@ -15,6 +15,7 @@ except Exception as e:
 
 def app():
     
+    st.markdown("<div id='linkto_top'></div>", unsafe_allow_html=True) 
     st.markdown("""
     <style>
     .big-font {
@@ -431,10 +432,13 @@ def app():
                     st.text("Please, tick all the boxes on the previous steps if the QC to meet GP2 standard format was successful")
                 else:
                     st.markdown('<p class="medium-font"> CONGRATS, your sample manifest meets all the GP2 requirements. </p>', unsafe_allow_html=True )
-                    st.markdown('<p class="medium-font"> Please, download it from the link below, and go to the last tab for upload to the GP2 storage system in Google Cloud. </p>', unsafe_allow_html=True )
+                    st.markdown('<p class="medium-font"> Please, download it from the link below </p>', unsafe_allow_html=True )
                     if output_choice == "CSV":
                         st.markdown(get_table_download_link(df), unsafe_allow_html=True)
                     else:
                         st.markdown(get_table_download_link(df, filetype=output_choice), unsafe_allow_html=True)
+                    jumptwice()
+                    st.markdown('<p class="medium-font"> Now, click the link below to go back to the top of the page and change to the Upload tab to deposit the QC sample manifest on the GP2 storage system</p>', unsafe_allow_html=True )
+                    st.markdown("<a href='#linkto_top'>Link to top</a>", unsafe_allow_html=True)
 
     main()
