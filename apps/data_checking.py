@@ -42,18 +42,18 @@ def app():
         in tsv or csv format
         out: href string
         """
-        #today = dt.datetime.today()
-        #version = f'{today.year}{today.month}{today.day}'
+        today = dt.datetime.today()
+        version = f'{today.year}{today.month}{today.day}'
 
         study_code = df.study.unique()[0]
         if filetype == "CSV":
             csv = df.to_csv(index=False)
             b64 = base64.b64encode(csv.encode()).decode()  # some strings <-> bytes conversions necessary here
-            href = f'<a href="data:file/csv;base64,{b64}"  download="{study_code}_sample_manifest_selfQC.csv">Download csv file</a>'
+            href = f'<a href="data:file/csv;base64,{b64}"  download="{study_code}_sample_manifest_selfQC_{version}.csv">Download csv file</a>'
         else:
             tsv = df.to_csv(index=False, sep="\t")
             b64 = base64.b64encode(tsv.encode()).decode()  # some strings <-> bytes conversions necessary here
-            href = f'<a href="data:file/tsv;base64,{b64}"  download="{study_code}_sample_manifest_selfQC.tsv">Download tsv file</a>'
+            href = f'<a href="data:file/tsv;base64,{b64}"  download="{study_code}_sample_manifest_selfQC_{version}.tsv">Download tsv file</a>'
         return href
         
     # @st.cache
