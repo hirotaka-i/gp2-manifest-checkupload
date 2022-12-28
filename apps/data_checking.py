@@ -405,17 +405,30 @@ def app():
                         st.write(df[v].value_counts(dropna=False))
                     else:
                         st.text(f'{v} - histogram ({nmiss} entries missing)')
-                        fig, ax = plt.subplots(figsize=(11,6))
-                        ax.hist(df[v].values, bins=20)
+                        #fig, ax = plt.subplots(figsize=(11,6))
+                        #ax.hist(df[v].values, bins=20)
+                        #st.pyplot(fig)
+                        import seaborn as sns
+                        fig = plt.figure(figsize=(11,6))
+                        fig, ax_hist = plt.subplots(
+                            figsize = (11,6)
+                        )
+                        ax_hist.grid(True)
+                        sns.histplot(data = df, x = v,
+                                     kde=True, color = "green",
+                                     ax = ax_hist)
+                        fig.set_tight_layout(True)
                         st.pyplot(fig)
-                    
+                        #import plotly_express as px
+                        #plot = px.histogram(x=v, data_frame=df)
+                        #st.plotly_chart(plot)
                     jumptwice()
 
 
             if st.button("Finished?"):
                 if not (ph_conf & sex_conf & race_conf & fh_conf & rg_conf):
                     st.error('Did you forget to confirm any of the steps above?')
-                    st.text("Please, tick all the boxes from all QC steps if all your samples were on the GP2 standard format")
+                    st.text("Please, tick all the boxes on the previous steps if the QC to meet GP2 standard format was successful")
                 else:
                     st.markdown('<p class="medium-font"> CONGRATS, your sample manifest meets all the GP2 requirements. </p>', unsafe_allow_html=True )
                     st.markdown('<p class="medium-font"> Please, download it from the link below, and go to the last tab for upload to the GP2 storage system in Google Cloud. </p>', unsafe_allow_html=True )
