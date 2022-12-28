@@ -89,10 +89,7 @@ def app():
             df = pd.read_csv(source_file).head(10)
         elif file_extension == ".tsv":
             df = pd.read_csv(source_file, sep = '\t').head(10)
-        else:
-            st.error("The self-QC tool generated files in CSV/TSV format only")
-            st.error("Please, make sure you are uploading the self-QC sample manifest generated on the QC tab")
-            st.stop()
+
         
         st.dataframe(
             df.style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
