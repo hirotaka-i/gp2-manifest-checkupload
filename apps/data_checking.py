@@ -18,7 +18,7 @@ def jumptwice():
     st.write("##")
     st.write("##")
 
-@st.cache
+
 def read_file(data_file):
     if data_file.type == "text/csv":
         df = pd.read_csv(data_file)
@@ -157,6 +157,9 @@ def app():
         else:
             st.text('Check missing data in the required fields --> OK')
             sample_id_dup = df.sample_id[df.sample_id.duplicated()].unique()    
+
+        # Convert sample and clinical id to strings
+        df[['sample_id', 'clinical_id']] = df[['sample_id','clinical_id']].astype(str)
         
         # sample dup check
         if len(sample_id_dup)>0:
