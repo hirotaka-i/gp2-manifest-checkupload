@@ -69,8 +69,8 @@ def app():
     
     cols = ['study', 'sample_id', 'sample_type',
             'DNA_volume', 'DNA_conc', 'r260_280',
-            'Plate_name', 'Plate_position', 'clinical_id', 
-            'study_arm', 'sex', 'race', 
+            'Plate_name', 'Plate_position', 'clinical_id',
+            'study_arm', 'sex', 'race',
             'age', 'age_of_onset', 'age_at_diagnosis', 'age_at_death', 'family_history',
             'region', 'comment', 'alternative_id1', 'alternative_id2']
     required_cols = ['study', 'sample_id', 'sample_type', 'clinical_id','study_arm', 'sex']
@@ -97,10 +97,6 @@ def app():
     st.markdown('<p class="medium-font"> Please refer to the second tab (Dictionary) for instructions </p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Once all the GP2 required columns are present in your manifest, please upload the sample manifest on the side bar for self QC.  </p>', unsafe_allow_html=True)
     
-    #st.text('This is a web app to self-check the sample manifest')
-    #st.text('The template download from the below link (go to "File"> "Download" as xlsx/csv)')
-    
-    #st.text('Please refer to the second tab (Dictionary) for instruction')
     st.text('')
     if data_file is not None:
         st.header("Data Check and self-QC")
@@ -120,6 +116,15 @@ def app():
             st.text('Check column names--> OK')
             df_non_miss_check = df[required_cols].copy()
 
+        # required columns checks
+        if df_non_miss_check.isna().sum().sum()>0:
+            st.error('There are some missing entries in the required columns. Please fill the missing cells ')
+            st.text('First ~30 columns with missing data in any required fields')
+            st.write(df_non_miss_check[df_non_miss_check.isna().sum(1)>0].head(20))
+            st.stop()
+        else:
+            st.text('Check missing data in the required fields --> OK')
+        
         # sample type check
         st.text('sample_type check')
         st.write(df.sample_type.astype('str').value_counts())
@@ -148,19 +153,9 @@ def app():
                     st.write(df.sample_type.astype('str').value_counts())
 
         
-        # required columns checks
-        if df_non_miss_check.isna().sum().sum()>0:
-            st.error('There are some missing entries in the required columns. Please fill the missing cells ')
-            st.text('First ~30 columns with missing data in any required fields')
-            st.write(df_non_miss_check[df_non_miss_check.isna().sum(1)>0].head(20))
-            st.stop()
-        else:
-            st.text('Check missing data in the required fields --> OK')
-            sample_id_dup = df.sample_id[df.sample_id.duplicated()].unique()    
-
         # Convert sample and clinical id to strings
         df[['sample_id', 'clinical_id']] = df[['sample_id','clinical_id']].astype(str)
-        
+        sample_id_dup = df.sample_id[df.sample_id.duplicated()].unique()
         # sample dup check
         if len(sample_id_dup)>0:
             st.text(f'Duplicated sample_id:{sample_id_dup}')
