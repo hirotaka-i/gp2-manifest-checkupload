@@ -46,7 +46,7 @@ def get_table_download_link(df, filetype = "CSV"):
     return href
 
 def app():
-    
+
     st.markdown("""
     <div id='linkto_top'></div>
     <style>
@@ -61,12 +61,12 @@ def app():
 
     menu = ["For Fulgent", "For NIH"]
     choice = st.sidebar.selectbox("Menu",menu)
-    
+
     ph_conf=''
     sex_conf=''
     race_conf = ''
     fh_conf=''
-    
+
     cols = ['study', 'sample_id', 'sample_type',
             'DNA_volume', 'DNA_conc', 'r260_280',
             'Plate_name', 'Plate_position', 'clinical_id',
@@ -80,12 +80,12 @@ def app():
                         'FFPE Block', 'Fresh tissue', 'Frozen tissue',
                         'Bone Marrow Aspirate', 'Whole BMA', 'CD3+ BMA', 'Other']
     fulgent_cols = ['DNA_volume', 'DNA_conc', 'Plate_name', 'Plate_position']
-    
+
     data_file = st.sidebar.file_uploader("Upload Sample Manifest (CSV/XLSX)", type=['csv', 'xlsx'])
 
     file_type = ["CSV", "TSV"]
     output_choice = st.sidebar.selectbox("Select the output format of your sample manifest", file_type)
-    
+
     # Process allowed_samples
     allowed_samples_strp = [samptype.strip().replace(" ", "") for samptype in allowed_samples]
 
@@ -96,17 +96,17 @@ def app():
     st.write('https://docs.google.com/spreadsheets/d/1ThpUVBCRaPdDSiQiKZVwFpwWbW8mZxhqurv7-jBPrM4')
     st.markdown('<p class="medium-font"> Please refer to the second tab (Dictionary) for instructions </p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Once all the GP2 required columns are present in your manifest, please upload the sample manifest on the side bar for self QC.  </p>', unsafe_allow_html=True)
-    
+
     st.text('')
     if data_file is not None:
         st.header("Data Check and self-QC")
-        
+
         # read a file
         df = read_file(data_file)
         df['Genotyping_site'] = choice.replace('For ', '')
         if choice=='For Fulgent':
             required_cols = required_cols + fulgent_cols
-        
+
         # missing col check
         missing_cols = np.setdiff1d(cols, df.columns)
         if len(missing_cols)>0:
@@ -124,7 +124,7 @@ def app():
             st.stop()
         else:
             st.text('Check missing data in the required fields --> OK')
-        
+
         # sample type check
         st.text('sample_type check')
         st.write(df.sample_type.astype('str').value_counts())
@@ -133,10 +133,10 @@ def app():
             sampletype = df.sample_type
             sampletype = sampletype.str.strip().replace(" ", "")
             not_allowed_v2 = np.setdiff1d(sampletype.unique(), allowed_samples_strp)
-            
+
             if len(not_allowed_v2) < len(not_allowed):
                 st.text('We have found some undesired whitespaces in some sample type values.')
-                    
+
                 if len(not_allowed_v2)>0:
                     st.text('In addition, we have found unknown sample types')
                     st.error(f'sample_type: {not_allowed} not allowed.')
@@ -152,7 +152,6 @@ def app():
                     st.text('sample type after removing undesired whitespaces')
                     st.write(df.sample_type.astype('str').value_counts())
 
-        
         # Convert sample and clinical id to strings
         df[['sample_id', 'clinical_id']] = df[['sample_id','clinical_id']].astype(str)
         sample_id_dup = df.sample_id[df.sample_id.duplicated()].unique()
@@ -233,7 +232,7 @@ def app():
                                     ["Male", "Female", "Intersex", "Unknown", "Other", "Not Reported"], key=i)
         df['sex_for_qc'] = df.sex.replace(mapdic)
 
-        # cross-tabulation of study_arm and Phenotype
+        # cross-tabulation
         st.text('=== sex_for_qc x sex ===')
         xtab = df.pivot_table(index='sex_for_qc', columns='sex', margins=True,
                                 values='sample_id', aggfunc='count', fill_value=0)            
@@ -275,7 +274,6 @@ def app():
         if race_conf:
             st.info('Thank you')
         
-
         # family history for qc
         jumptwice()
         st.subheader('Create "family_history_for_qc"')
@@ -350,7 +348,6 @@ def app():
                 st.stop()
             else:
                 st.info('Thank you')
-
 
         # Plate Info
         jumptwice()
