@@ -103,6 +103,8 @@ def app():
 
         # read a file
         df = read_file(data_file)
+        df.index = df.index +2
+        
         df['Genotyping_site'] = choice.replace('For ', '')
         if choice=='For Fulgent':
             required_cols = required_cols + fulgent_cols
@@ -136,21 +138,30 @@ def app():
 
             if len(not_allowed_v2) < len(not_allowed):
                 st.text('We have found some undesired whitespaces in some sample type values.')
-
+                st.text('Processing whitespaces found in certain sample_type entries')
+                stype_map = dict(zip(allowed_samples_strp, allowed_samples))
+                newsampletype = sampletype.replace(stype_map)
+                df['sample_type'] = newsampletype
+                st.text('sample type count after removing undesired whitespaces')
+                st.write(df.sample_type.astype('str').value_counts())
+                
                 if len(not_allowed_v2)>0:
                     st.text('In addition, we have found unknown sample types')
-                    st.error(f'sample_type: {not_allowed} not allowed.')
+                    #st.error(f'sample_type: {not_allowed} not allowed.')
+                    st.error(f'sample_type: {not_allowed_v2} not allowed.')
                     sample_list = '\n * '.join(allowed_samples)
+                    st.text('Writing entries with sample_type not allowed')
+                    st.write(df[df['sample_type'].isin(not_allowed_v2)])
                     st.text(f'Allowed sample list - \n * {sample_list}')
                     st.stop()
-
-                else: # Map the stripped sample types back to the harmonised names
-                    st.text('Processing whitespaces found in certain sample_type entries')
-                    stype_map = dict(zip(allowed_samples_strp, allowed_samples))
-                    newsampletype = sampletype.replace(stype_map)
-                    df['sample_type'] = newsampletype
-                    st.text('sample type after removing undesired whitespaces')
-                    st.write(df.sample_type.astype('str').value_counts())
+                # else: # Map the stripped sample types back to the harmonised names
+                    
+                #     st.text('Processing whitespaces found in certain sample_type entries')
+                #     stype_map = dict(zip(allowed_samples_strp, allowed_samples))
+                #     newsampletype = sampletype.replace(stype_map)
+                #     df['sample_type'] = newsampletype
+                #     st.text('sample type after removing undesired whitespaces')
+                #     st.write(df.sample_type.astype('str').value_counts())
 
         # Convert sample and clinical id to strings
         df[['sample_id', 'clinical_id']] = df[['sample_id','clinical_id']].astype(str)
@@ -164,33 +175,6 @@ def app():
             st.text(f'Check sample_id duplicaiton --> OK')
             st.text(f'N of sample_id (entries):{df.shape[0]}')
             st.text(f'N of unique clinical_id : {len(df.clinical_id.unique())}')
-
-        # # sample type check
-        # st.text('sample_type check')
-        # st.write(df.sample_type.astype('str').value_counts())
-        # not_allowed = np.setdiff1d(df.sample_type.unique(), allowed_samples)
-        # if len(not_allowed)>0:
-        #     sampletype = df.sample_type
-        #     sampletype = sampletype.str.strip().replace(" ", "")
-        #     not_allowed_v2 = np.setdiff1d(sampletype.unique(), allowed_samples_strp)
-            
-        #     if len(not_allowed_v2) < len(not_allowed):
-        #         st.text('We have found some undesired whitespaces in some sample type values.')
-                    
-        #         if len(not_allowed_v2)>0:
-        #             st.text('In addition, we have found unknown sample types')
-        #             st.error(f'sample_type: {not_allowed} not allowed.')
-        #             sample_list = '\n * '.join(allowed_samples)
-        #             st.text(f'Allowed sample list - \n * {sample_list}')
-        #             st.stop()
-
-        #         else: # Map the stripped sample types back to the harmonised names
-        #             st.text('Processing whitespaces found in certain sample_type entries')
-        #             stype_map = dict(zip(allowed_samples_strp, allowed_samples))
-        #             newsampletype = sampletype.replace(stype_map)
-        #             df['sample_type'] = newsampletype
-        #             st.text('sample type after removing undesired whitespaces')
-        #             st.write(df.sample_type.astype('str').value_counts())
 
         # study_arm --> Phenotype
         jumptwice()
