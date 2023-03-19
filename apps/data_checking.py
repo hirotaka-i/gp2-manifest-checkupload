@@ -187,7 +187,8 @@ def app():
         for i, x in enumerate(n_arms):
             with x:
                 arm = arms[i]
-                phenotypes[arm]=x.selectbox(f"[{arm}]: For QC, please pick the closest Phenotype",["PD", "Control", "Prodromal", "Other", "Not Reported"], key=i)
+                phenotypes[arm]=x.selectbox(f"[{arm}]: For QC, please pick the closest Phenotype",["PD", "Control", "Prodromal", "Other", "Not Reported" \
+                                                                                                   "MSA", "PSP", "DLB", "CBS", "AD"], key=i)
         df['Phenotype'] = df.study_arm.map(phenotypes)
 
         # cross-tabulation of study_arm and Phenotype
