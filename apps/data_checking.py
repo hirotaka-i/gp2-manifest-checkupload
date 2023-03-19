@@ -231,9 +231,9 @@ def app():
         if sex_conf:
             st.info('Thank you')
             
-            if "Other/Unknown/Not Reported":
+            if 'Other/Unknown/Not Reported' in df['biological_sex_for_qc'].unique():
                 sex_count = df['biological_sex_for_qc'].value_counts()
-                unknown_rate = sex_count["Other/Unknown/Not Reported"] / df.shape[0]
+                unknown_rate = sex_count['Other/Unknown/Not Reported'] / df.shape[0]
                 if unknown_rate > 0.01:
                     st.text("The number of samples with \"Other/Unknown/Not Reported\" sex category is higher than 1% ")
                     st.warning("Please check that you selected the right sex values for your samples above ")
