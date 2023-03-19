@@ -187,7 +187,7 @@ def app():
         for i, x in enumerate(n_arms):
             with x:
                 arm = arms[i]
-                phenotypes[arm]=x.selectbox(f"[{arm}]: For QC, please pick the closest Phenotype",["PD", "Control", "Prodromal", "Other", "Not Reported" \
+                phenotypes[arm]=x.selectbox(f"[{arm}]: For QC, please pick the closest Phenotype",["PD", "Control", "Prodromal", "Other", "Not Reported", \
                                                                                                    "MSA", "PSP", "DLB", "CBS", "AD"], key=i)
         df['Phenotype'] = df.study_arm.map(phenotypes)
 
@@ -201,7 +201,11 @@ def app():
         if ph_conf:
             st.info('Thank you')
         
-
+        # Get QCed Phenotype and map it to PD, Control, Other
+        pattern_other = '|'.join(['Prodromal', 'NotReported', 'MSA', 'PSP', 'DLB', 'CBS', 'AD'])
+        df['phenotype_for_qc'] = df['Phenotype'].str.replace(" ", "").str.replace(pattern_other, 'Other')
+        
+        
         # sex for qc
         jumptwice()
         st.subheader('Create "biological_sex_for_qc"')
