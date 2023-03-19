@@ -203,7 +203,7 @@ def app():
 
         # sex for qc
         jumptwice()
-        st.subheader('Create "sex_for_qc"')
+        st.subheader('Create "biological_sex_for_qc"')
         st.text('Count per sex group')
         st.write(df.sex.astype('str').value_counts())
         sexes=df.sex.dropna().unique()
@@ -213,19 +213,26 @@ def app():
             with x:
                 sex = sexes[i]
                 mapdic[sex]=x.selectbox(f"[{sex}]: For QC, please pick a word below", 
-                                    ["Male", "Female", "Intersex", "Unknown", "Other", "Not Reported"], key=i)
-        df['sex_for_qc'] = df.sex.replace(mapdic)
+                                    ["Male", "Female", "Other/Unknown/Not Reported"], key=i)
+        df['biological_sex_for_qc'] = df.sex.replace(mapdic)
 
         # cross-tabulation
-        st.text('=== sex_for_qc x sex ===')
-        xtab = df.pivot_table(index='sex_for_qc', columns='sex', margins=True,
+        st.text('=== biological_sex_for_qc x sex ===')
+        xtab = df.pivot_table(index='biological_sex_for_qc', columns='sex', margins=True,
                                 values='sample_id', aggfunc='count', fill_value=0)            
         st.write(xtab)
         
-        sex_conf = st.checkbox('Confirm sex_for_qc?')
+        sex_conf = st.checkbox('Confirm biological_sex_for_qc?')
         if sex_conf:
             st.info('Thank you')
-
+            
+            if "Other/Unknown/Not Reported":
+                sex_count = df['biological_sex_for_qc'].value_counts()
+                unknown_rate = sex_count["Other/Unknown/Not Reported"] / df.shape[0]
+                if unknown_rate > 0.01:
+                    st.text("The number of samples with \"Other/Unknown/Not Reported\" sex category is higher than 1% ")
+                    st.warning("Please check that you selected the right sex values for your samples above ")
+        
         # race for qc
         jumptwice()
         st.subheader('Create "race_for_qc"')
