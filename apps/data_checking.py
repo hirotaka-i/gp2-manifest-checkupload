@@ -351,7 +351,7 @@ def app():
         dft = df.copy()
         dft['Plate_name'] = dft.Plate_name.fillna('_Missing')
         xtab = dft.pivot_table(index='Plate_name', 
-                            columns='study_arm', margins=True,
+                            columns='diagnosis', margins=True,
                             values='sample_id', aggfunc='count', fill_value=0)
         st.write(xtab)
 
