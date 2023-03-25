@@ -71,8 +71,8 @@ def app():
             'DNA_volume', 'DNA_conc', 'r260_280',
             'Plate_name', 'Plate_position', 'clinical_id',
             'study_arm', 'sex', 'race',
-            'age', 'age_of_onset', 'age_at_diagnosis', 'age_at_death', 'family_history',
-            'region', 'comment', 'alternative_id1', 'alternative_id2']
+            'age', 'age_of_onset', 'age_at_diagnosis', 'age_at_death', 'age_at_last_follow_up',
+            'family_history', 'region', 'comment', 'alternative_id1', 'alternative_id2']
     required_cols = ['study', 'sample_id', 'sample_type', 'clinical_id','study_arm', 'sex']
     allowed_samples = ['Blood (EDTA)', 'Blood (ACD)', 'Blood', 'DNA',
                         'DNA from blood', 'DNA from FFPE', 'RNA', 'Saliva',
@@ -93,7 +93,7 @@ def app():
     #st.title("GP2 sample manifest self-QC web app")
     st.markdown('<p class="medium-font"> This is a web app to self-check the sample manifest </p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Download the template from the link below. Once you open the link, go to "File"> "Download" as xlsx/csv). </p>', unsafe_allow_html=True )
-    st.write('https://docs.google.com/spreadsheets/d/1ThpUVBCRaPdDSiQiKZVwFpwWbW8mZxhqurv7-jBPrM4')
+    st.write('https://docs.google.com/spreadsheets/d/1SCCJzZ342z2bEki2y9QZOzEEXUb3COa1OhXEvOfaTiM/')
     st.markdown('<p class="medium-font"> Please refer to the second tab (Dictionary) for instructions </p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Once all the GP2 required columns are present in your manifest, please upload the sample manifest on the side bar for self QC.  </p>', unsafe_allow_html=True)
 
@@ -371,7 +371,7 @@ def app():
         # Numeric values
         jumptwice()
         st.subheader('Numeric Values')
-        numerics_cols = ['DNA_volume', 'DNA_conc', 'r260_280','age', 'age_of_onset', 'age_at_diagnosis', 'age_at_death']
+        numerics_cols = ['DNA_volume', 'DNA_conc', 'r260_280','age', 'age_of_onset', 'age_at_diagnosis', 'age_at_last_follow_up','age_at_death']
         for v in numerics_cols:
             if df.dtypes[v] not in ['float64', 'int64']:
                 st.error(f'{v} is not numeric')
