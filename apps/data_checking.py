@@ -70,10 +70,10 @@ def app():
     cols = ['study', 'sample_id', 'sample_type',
             'DNA_volume', 'DNA_conc', 'r260_280',
             'Plate_name', 'Plate_position', 'clinical_id',
-            'study_arm', 'sex', 'race',
+            'study_arm', 'diagnosis', 'sex', 'race',
             'age', 'age_of_onset', 'age_at_diagnosis', 'age_at_death', 'age_at_last_follow_up',
             'family_history', 'region', 'comment', 'alternative_id1', 'alternative_id2']
-    required_cols = ['study', 'sample_id', 'sample_type', 'clinical_id','study_arm', 'sex']
+    required_cols = ['study', 'sample_id', 'sample_type', 'clinical_id','study_arm', 'diagnosis', 'sex']
     allowed_samples = ['Blood (EDTA)', 'Blood (ACD)', 'Blood', 'DNA',
                         'DNA from blood', 'DNA from FFPE', 'RNA', 'Saliva',
                         'Buccal Swab', 'T-25 Flasks (Amniotic)', 'FFPE Slide',
@@ -176,24 +176,24 @@ def app():
             st.text(f'N of sample_id (entries):{df.shape[0]}')
             st.text(f'N of unique clinical_id : {len(df.clinical_id.unique())}')
 
-        # study_arm --> Phenotype
+        # diagnosis --> Phenotype
         jumptwice()
         st.subheader('Create "Phenotype"')
-        st.text('Count per study_arm')
-        st.write(df.study_arm.astype('str').value_counts())
-        arms=df.study_arm.dropna().unique()
-        n_arms = st.columns(len(arms))
+        st.text('Count per diagnosis')
+        st.write(df.diagnosis.astype('str').value_counts())
+        diag = df.diagnosis.dropna().unique()
+        n_diag = st.columns(len(diag))
         phenotypes={}
-        for i, x in enumerate(n_arms):
+        for i, x in enumerate(n_diag):
             with x:
-                arm = arms[i]
-                phenotypes[arm]=x.selectbox(f"[{arm}]: For QC, please pick the closest Phenotype",["PD", "Control", "Prodromal", "Other", "Not Reported", \
+                mydiag = diag[i]
+                phenotypes[mydiag]=x.selectbox(f"[{mydiag}]: For QC, please pick the closest Phenotype",["PD", "Control", "Prodromal", "Other", "Not Reported", \
                                                                                                    "MSA", "PSP", "DLB", "CBS", "AD"], key=i)
-        df['Phenotype'] = df.study_arm.map(phenotypes)
+        df['Phenotype'] = df.diagnosis.map(phenotypes)
 
-        # cross-tabulation of study_arm and Phenotype
-        st.text('=== Phenotype x study_arm===')
-        xtab = df.pivot_table(index='Phenotype', columns='study_arm', margins=True,
+        # cross-tabulation of diagnosis and Phenotype
+        st.text('=== Phenotype x diagnosis===')
+        xtab = df.pivot_table(index='Phenotype', columns='diagnosis', margins=True,
                                 values='sample_id', aggfunc='count', fill_value=0)
         st.write(xtab)
         
