@@ -181,8 +181,18 @@ def app():
         # diagnosis --> Phenotype
         jumptwice()
         st.subheader('Create "Phenotype"')
+
+        st.text('Show study arm versus diagnosis')
+        # Add xtab for diagnosis vs study arm
+        xtab = df.pivot_table(index='study_arm', columns='diagnosis', margins=True,
+                              values='sample_id', aggfunc='count', fill_value=0)
+        st.write(xtab)
+
+        jumptwice()
         st.text('Count per diagnosis')
         st.write(df.diagnosis.astype('str').value_counts())
+
+        jumptwice()
         diag = df.diagnosis.dropna().unique()
         n_diag = st.columns(len(diag))
         phenotypes={}
@@ -213,6 +223,8 @@ def app():
         st.subheader('Create "biological_sex_for_qc"')
         st.text('Count per sex group')
         st.write(df.sex.astype('str').value_counts())
+        
+        jumptwice()
         sexes=df.sex.dropna().unique()
         n_sexes = st.columns(len(sexes))
         mapdic={}
@@ -246,6 +258,8 @@ def app():
         st.text('Count per race (Not Reported = missing)')
         df['race_for_qc'] = df.race.fillna('Not Reported')
         st.write(df.race_for_qc.astype('str').value_counts())
+        
+        jumptwice()
         races = df.race.dropna().unique()
         nmiss = sum(pd.isna(df.race))
 
@@ -280,10 +294,12 @@ def app():
         st.write(df.family_history_for_qc.astype('str').value_counts())
         family_historys = df.family_history.dropna().unique()
         nmiss = sum(pd.isna(df.family_history))
-
+        
         if nmiss>0:
             st.text(f'{nmiss} entries missing family_history')
         mapdic = {'Not Reported':'Not Reported'}
+        jumptwice()
+
 
         if len(family_historys)>0:
             n_fhs = st.columns(len(family_historys))
@@ -313,10 +329,12 @@ def app():
         st.write(df.region_for_qc.astype('str').value_counts())
         regions = df.region.dropna().unique()
         nmiss = sum(pd.isna(df.region))
+        
         if nmiss>0:
             st.text(f'{nmiss} entries missing for region')
-        
         mapdic = {'Not Reported':'Not Reported'}
+        jumptwice()
+
 
         if len(regions)>0:
             st.text('if ISO 3166-3 is available for the region, please provide')
