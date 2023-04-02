@@ -91,11 +91,13 @@ def app():
 
     st.markdown('<p class="big-font">GP2 sample manifest self-QC</p>', unsafe_allow_html=True)
     #st.title("GP2 sample manifest self-QC web app")
-    st.markdown('<p class="medium-font"> This is a web app to self-check the sample manifest </p>', unsafe_allow_html=True)
-    st.markdown('<p class="medium-font"> Download the template from the link below. Once you open the link, go to "File"> "Download" as xlsx/csv). </p>', unsafe_allow_html=True )
-    st.write('https://docs.google.com/spreadsheets/d/1SCCJzZ342z2bEki2y9QZOzEEXUb3COa1OhXEvOfaTiM/')
-    st.markdown('<p class="medium-font"> Please refer to the second tab (Dictionary) for instructions </p>', unsafe_allow_html=True)
-    st.markdown('<p class="medium-font"> Once all the GP2 required columns are present in your manifest, please upload the sample manifest on the side bar for self QC.  </p>', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> This is a web app to self-check the sample manifest. </p>', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> Download the template from the link below. Once you open the link, go to "File"> "Download" > "xlsx" or "csv" format. </p>', unsafe_allow_html=True)
+    st.markdown('[Access the sample manifest dictionary and a template](https://docs.google.com/spreadsheets/d/1SCCJzZ342z2bEki2y9QZOzEEXUb3COa1OhXEvOfaTiM/edit#gid=227954521)', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> Please refer to the second tab (Dictionary) for instructions. </p>', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> Please refer to the first tab (Template) to access sample manifest template to fill in. </p>', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> Please note all the GP2 required columns must be completed </p>', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> Once you have filled in all the columns avavailable in your cohort, please upload the manifest on the side bar to start the QC process </p>', unsafe_allow_html=True)
 
     st.text('')
     if data_file is not None:
