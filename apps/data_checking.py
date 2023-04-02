@@ -59,8 +59,8 @@ def app():
     </style>
     """, unsafe_allow_html=True)
 
-    menu = ["For Fulgent", "For NIH"]
-    choice = st.sidebar.selectbox("Menu",menu)
+    menu = ["For Fulgent", "For NIH", "For UCL", "For DZNE"]
+    choice = st.sidebar.selectbox("Genotyping site",menu)
 
     ph_conf=''
     sex_conf=''
