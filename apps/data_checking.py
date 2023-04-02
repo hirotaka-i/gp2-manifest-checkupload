@@ -38,11 +38,11 @@ def get_table_download_link(df, filetype = "CSV"):
     if filetype == "CSV":
         csv = df.to_csv(index=False)
         b64 = base64.b64encode(csv.encode()).decode()  # some strings <-> bytes conversions necessary here
-        href = f'<a href="data:file/csv;base64,{b64}"  download="{study_code}_sample_manifest_selfQC_{version}.csv">Download csv file</a>'
+        href = f'<a href="data:file/csv;base64,{b64}"  download="{study_code}_sample_manifest_selfQC_{version}.csv">Download your QC sample manifest on csv file</a>'
     else:
         tsv = df.to_csv(index=False, sep="\t")
         b64 = base64.b64encode(tsv.encode()).decode()  # some strings <-> bytes conversions necessary here
-        href = f'<a href="data:file/tsv;base64,{b64}"  download="{study_code}_sample_manifest_selfQC_{version}.tsv">Download tsv file</a>'
+        href = f'<a href="data:file/tsv;base64,{b64}"  download="{study_code}_sample_manifest_selfQC_{version}.tsv">Download your QC sample manifest on tsv file</a>'
     return href
 
 def app():
@@ -437,10 +437,7 @@ def app():
             else:
                 st.markdown('<p class="medium-font"> CONGRATS, your sample manifest meets all the GP2 requirements. </p>', unsafe_allow_html=True )
                 st.markdown('<p class="medium-font"> Please, download it from the link below </p>', unsafe_allow_html=True )
-                if output_choice == "CSV":
-                    st.markdown(get_table_download_link(df), unsafe_allow_html=True)
-                else:
-                    st.markdown(get_table_download_link(df, filetype=output_choice), unsafe_allow_html=True)
+                st.markdown(get_table_download_link(df, filetype=output_choice), unsafe_allow_html=True)
                 jumptwice()
                 st.markdown('<p class="medium-font"> Now, click the link below to go back to the top of the page and change to the Upload tab to deposit the QC sample manifest on the GP2 storage system</p>', unsafe_allow_html=True )
                 st.markdown("<a href='#linkto_top'>Link to top</a>", unsafe_allow_html=True)
