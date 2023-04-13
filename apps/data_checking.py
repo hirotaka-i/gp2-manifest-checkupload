@@ -9,6 +9,8 @@ try:
     import datetime as dt
     import matplotlib.pyplot as plt
     import seaborn as sns
+    from io import BytesIO
+    import xlsxwriter
 
 except Exception as e:
     print("Some modules are not installed {}".format(e))
@@ -18,7 +20,6 @@ def jumptwice():
     st.write("##")
     st.write("##")
 
-
 def read_file(data_file):
     if data_file.type == "text/csv":
         df = pd.read_csv(data_file)
@@ -26,24 +27,40 @@ def read_file(data_file):
         df = pd.read_excel(data_file, sheet_name=0)
     return (df)
 
-def get_table_download_link(df, filetype = "CSV"):
-    """Generates a link allowing the data in a given panda dataframe to be downloaded
-    in tsv or csv format
-    out: href string
+def to_excel(df):
+    """It returns an excel object sheet with the QC sample manifest
+    written in Sheet1
+    """
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='Sheet1')
+    workbook = writer.book
+    worksheet = writer.sheets['Sheet1']
+    format1 = workbook.add_format({'num_format': '0.00'})  
+    writer.save()
+    processed_data = output.getvalue()
+    return processed_data
+
+def output_create(df, filetype = "CSV"):
+    """It returns a tuple with the file content and the name to 
+    write through a download button
     """
     today = dt.datetime.today()
     version = f'{today.year}{today.month}{today.day}'
-
     study_code = df.study.unique()[0]
+    
     if filetype == "CSV":
-        csv = df.to_csv(index=False)
-        b64 = base64.b64encode(csv.encode()).decode()  # some strings <-> bytes conversions necessary here
-        href = f'<a href="data:file/csv;base64,{b64}"  download="{study_code}_sample_manifest_selfQC_{version}.csv">Download your QC sample manifest on csv file</a>'
+        file = df.to_csv(index=False).encode()
+        ext = "csv"
+    elif filetype == "TSV":
+        file = df.to_csv(index=False, sep="\t").encode()
+        ext = "tsv"
     else:
-        tsv = df.to_csv(index=False, sep="\t")
-        b64 = base64.b64encode(tsv.encode()).decode()  # some strings <-> bytes conversions necessary here
-        href = f'<a href="data:file/tsv;base64,{b64}"  download="{study_code}_sample_manifest_selfQC_{version}.tsv">Download your QC sample manifest on tsv file</a>'
-    return href
+        file = to_excel(df)
+        ext = "xlsx"
+    filename = "{s}_sample_manifest_selfQC_{v}.{e}".format(s=study_code, v = version, e = ext)
+    return (file, filename)
+
 
 def app():
 
@@ -83,7 +100,7 @@ def app():
 
     data_file = st.sidebar.file_uploader("Upload Sample Manifest (CSV/XLSX)", type=['csv', 'xlsx'])
 
-    file_type = ["CSV", "TSV"]
+    file_type = ["CSV", "TSV", "XLSX"]
     output_choice = st.sidebar.selectbox("Select the output format of your sample manifest", file_type)
 
     # Process allowed_samples
@@ -436,8 +453,10 @@ def app():
                 st.text("Please, tick all the boxes on the previous steps if the QC to meet GP2 standard format was successful")
             else:
                 st.markdown('<p class="medium-font"> CONGRATS, your sample manifest meets all the GP2 requirements. </p>', unsafe_allow_html=True )
-                st.markdown('<p class="medium-font"> Please, download it from the link below </p>', unsafe_allow_html=True )
-                st.markdown(get_table_download_link(df, filetype=output_choice), unsafe_allow_html=True)
-                jumptwice()
-                st.markdown('<p class="medium-font"> Now, click the link below to go back to the top of the page and change to the Upload tab to deposit the QC sample manifest on the GP2 storage system</p>', unsafe_allow_html=True )
-                st.markdown("<a href='#linkto_top'>Link to top</a>", unsafe_allow_html=True)
+                qcmanifest = output_create(df, filetype=output_choice)
+                st.download_button(label='📥 Download your QC sample manifest',
+                                   data = qcmanifest[0],
+                                   file_name = qcmanifest[1]
+                                   )
+        jumptwice()
+        st.markdown("<a href='#linkto_top'>Link to top</a>", unsafe_allow_html=True)
