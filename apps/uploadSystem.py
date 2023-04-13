@@ -19,13 +19,13 @@ os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
 #     #return(currentMonth, currentYear)
 #     return "".join(dates)
 
-def read_manifest(file_extension, source_file):
-    """Read the manifest uploaded to the app"""
-    if file_extension in [".csv", ".tsv"]:
-        data = source_file.getvalue()
-    else:
-        data = str(source_file.read(), "utf-8")
-    return data
+# def read_manifest(file_extension, source_file):
+#     """Read the manifest uploaded to the app"""
+#     if file_extension in [".csv", ".tsv"]:
+#         data = source_file.getvalue()
+#     else:
+#         data = source_file.getvalue()
+#     return data
 
 # def view_manifest(source_file, file_extension):
 #     """Preview uploaded sample manifest"""
@@ -75,7 +75,7 @@ def app():
     # Add files browser
     source_file = st.file_uploader(
         "Upload the QC Sample Manifest",
-        type=["tsv","csv"]
+        type=["tsv", "csv", "xlsx"]
     )
 
     # Add preview util
@@ -83,12 +83,13 @@ def app():
         file_details = {"FileName":source_file.name,
                         "FileType":source_file.type,"FileSize":source_file.size}
         file_name, file_extension = os.path.splitext(file_details["FileName"])
-        #view_manifest(source_file, file_extension)
         
         if file_extension == ".csv":
             df = pd.read_csv(source_file).head(10)
         elif file_extension == ".tsv":
             df = pd.read_csv(source_file, sep = '\t').head(10)
+        elif file_extension == ".xlsx":
+            df = pd.read_excel(source_file, sheet_name=0).head(10)
 
         
         st.dataframe(
@@ -106,7 +107,7 @@ def app():
                     bucket_name = "eu-samplemanifest"
                     #destination = os.path.join(study_name, file_name + "_" + get_date() + file_extension)
                     destination = os.path.join(study_name, file_name + file_extension)
-                    data = read_manifest(file_extension, source_file)
+                    data = source_file.getvalue()
                     check = upload_data(bucket_name, data, destination)
                     st.markdown(
                         '<p class="medium-font"> {} !!</p>'.format(check), 
