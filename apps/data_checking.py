@@ -216,8 +216,10 @@ def app():
         for i, x in enumerate(n_diag):
             with x:
                 mydiag = diag[i]
-                phenotypes[mydiag]=x.selectbox(f"[{mydiag}]: For QC, please pick the closest Phenotype",["PD", "Control", "Prodromal", "Other", "Not Reported", \
-                                                                                                   "MSA", "PSP", "DLB", "CBS", "AD"], key=i)
+                phenotypes[mydiag]=x.selectbox(f"[{mydiag}]: For QC, please pick the closest Phenotype",["PD", "Control", "Prodromal", \
+                                                                                                         "Other", "Not Reported", "MSA", \
+                                                                                                         "PSP", "DLB", "CBS", "AD", "FTD", "VSC"], 
+                                                                                                         key=i)
         df['Phenotype'] = df.diagnosis.map(phenotypes)
 
         # cross-tabulation of diagnosis and Phenotype
