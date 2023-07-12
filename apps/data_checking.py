@@ -76,7 +76,7 @@ def app():
     </style>
     """, unsafe_allow_html=True)
 
-    menu = ["For Fulgent", "For NIH", "For UCL", "For DZNE"]
+    menu = ["For Fulgent", "For NIH", "For LGC", "For UCL", "For DZNE"]
     choice = st.sidebar.selectbox("Genotyping site",menu)
 
     ph_conf=''
