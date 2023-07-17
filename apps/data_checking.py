@@ -3,6 +3,8 @@ try:
     import streamlit.components.v1 as stc
 
     # File Processing Pkgs
+    import ijson
+    import json
     import pandas as pd
     import numpy as np
     import base64
@@ -11,6 +13,11 @@ try:
     import seaborn as sns
     from io import BytesIO
     import xlsxwriter
+    import sys
+    import os
+    from google.cloud import storage    
+    sys.path.append('utils')
+    import generategp2ids
 
 except Exception as e:
     print("Some modules are not installed {}".format(e))
@@ -63,7 +70,7 @@ def output_create(df, filetype = "CSV"):
 
 
 def app():
-
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
     st.markdown("""
     <div id='linkto_top'></div>
     <style>
@@ -195,6 +202,85 @@ def app():
             st.text(f'N of sample_id (entries):{df.shape[0]}')
             st.text(f'N of unique clinical_id : {len(df.clinical_id.unique())}')
 
+        # GENERATE GP2 IDs #
+        st.subheader('Assign GP2 IDs... Please wait')
+        studynames = list(df['study'].unique())
+        # ACCESS MASTERGP2IDS_JSON IN GP2 BUCKET
+        client = storage.Client()
+        bucket = client.get_bucket('eu-samplemanifest')
+        blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230716.json')
+        ids_tracker = {}
+        with blob.open("r") as f:
+            for cohort in studynames:
+                for record in ijson.items(f, cohort):
+                    ids_tracker.update({cohort : record})
+        #st.write(f'is IDs tracker empty?': bool(ids_tracker))
+        #st.write(ids_tracker)
+
+        study_subsets = []
+        for study in studynames:
+            df_subset = df[df.study==study].copy()
+            study_tracker = ids_tracker[study]
+            
+            #if 'ids_tracker' in globals():
+            if bool(ids_tracker):
+                st.write("IN IDS_TRACKER")
+                df_subset['GP2sampleID'] = df_subset['sample_id'].apply(lambda x: study_tracker.get(str(x)), np.nan)
+                st.write(df_subset.head())
+                st.write(df_subset.info())
+                df_newids = df_subset[df_subset['GP2sampleID'].isnull()].reset_index(drop = True).copy()
+                #print(df_newids)
+                if not df_newids.empty:
+                    st.write("IN NEW IDS")
+                    # Get chunk of df with existing GP2Sample IDs and save
+                    # Get uids missing GP2 IDs
+                    new = True
+                    df_wids = df_subset[~df_subset['GP2sampleID'].isnull()].reset_index(drop = True).copy()
+                    df_wids['GP2ID'] = df_wids['GP2sampleID'].apply(lambda x: ("_").join(x.split("_")[:-1]))
+                    df_wids['SampleRepNo'] = df_wids['GP2sampleID'].apply(lambda x: x.split("_")[-1])#.replace("s","")) 
+                    
+                    uids = [str(id) for id in df_subset['sample_id'].unique()]
+                    uids = np.setdiff1d(uids, list(study_tracker.keys())) # Get the new IDs
+                    n=int(max(list(study_tracker.values())).split("_")[1])+1
+                    
+                    # Work on samples missing GP2 IDs
+                    df_newids = generategp2ids.getgp2ids(df_newids, n, uids, study) # Call gp2 IDs assignment function
+                    df_subset = pd.concat([df_newids, df_wids], axis = 0) # Subset with all ids present
+                    st.dataframe(df_newids.iloc[1:20,:])
+                    st.dataframe(df_subset.iloc[1:20,:])
+                    study_subsets.append(df_subset)
+
+                else:
+                    st.write("IN no new ids")
+                    new = False
+                    # Update df with GP2 IDs
+                    #df = df[~df['GP2sampleID'].isnull()].reset_index().copy()
+                    df_subset['GP2ID'] = df_subset['GP2sampleID'].apply(lambda x: ("_").join(x.split("_")[:-1]))
+                    df_subset['SampleRepNo'] = df_subset['GP2sampleID'].apply(lambda x: x.split("_")[-1].replace("s",""))
+                    study_subsets.append(df_subset)   
+            else:
+                st.write("IN ALL NEW IDS")
+                # Brand new data - Generate GP2 IDs from scratch (n = 1)
+                new = True
+                df_subset['GP2sampleID'] = np.nan
+                uids = [str(id) for id in df_subset['sample_id'].unique()]
+                n=1
+                df_newids = df_subset.copy()
+                df_newids = generategp2ids.getgp2ids(df_newids, n, uids, study)
+                study_subsets.append(df_newids)
+
+            if new:
+                ids_log = df_newids.groupby('study').apply(lambda x: dict(zip(x['sample_id'], 
+                                                                            x['GP2sampleID']))).to_dict()
+                generategp2ids.update_masterids(blob, ids_log)
+
+        df = pd.concat(study_subsets, axis = 0)
+        df = df[list(df)[-3:] + list(df)[:-3]]
+        st.write("GPS IDs assignment... OK")
+        st.dataframe(
+            df.loc[1:10, :].style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
+        )
+        
         # diagnosis --> Phenotype
         jumptwice()
         st.subheader('Create "Phenotype"')
