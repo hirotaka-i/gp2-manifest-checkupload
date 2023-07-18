@@ -272,7 +272,7 @@ def app():
             if new:
                 ids_log = df_newids.groupby('study').apply(lambda x: dict(zip(x['sample_id'], 
                                                                             x['GP2sampleID']))).to_dict()
-                generategp2ids.update_masterids(blob, ids_log)
+                generategp2ids.update_masterids(blob, ids_log, study_tracker)
 
         df = pd.concat(study_subsets, axis = 0)
         df = df[list(df)[-3:] + list(df)[:-3]]
