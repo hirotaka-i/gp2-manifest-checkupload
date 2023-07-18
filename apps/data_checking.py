@@ -208,7 +208,7 @@ def app():
         # ACCESS MASTERGP2IDS_JSON IN GP2 BUCKET
         client = storage.Client()
         bucket = client.get_bucket('eu-samplemanifest')
-        blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230716.json')
+        blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230718.json')
         ids_tracker = {}
         with blob.open("r") as f:
             for cohort in studynames:
@@ -220,11 +220,15 @@ def app():
         study_subsets = []
         for study in studynames:
             df_subset = df[df.study==study].copy()
-            study_tracker = ids_tracker[study]
+            #if 'ids_tracker' in globals():       
+            try:
+                study_tracker = ids_tracker[study]
+            except:
+                study_tracker = None
             
-            #if 'ids_tracker' in globals():
-            if bool(ids_tracker):
+            if bool(study_tracker):
                 st.write("IN IDS_TRACKER")
+                st.write(study_tracker)
                 df_subset['GP2sampleID'] = df_subset['sample_id'].apply(lambda x: study_tracker.get(str(x)), np.nan)
                 st.write(df_subset.head())
                 st.write(df_subset.info())
@@ -260,6 +264,7 @@ def app():
                     study_subsets.append(df_subset)   
             else:
                 st.write("IN ALL NEW IDS")
+                st.write(study_tracker)
                 # Brand new data - Generate GP2 IDs from scratch (n = 1)
                 new = True
                 df_subset['GP2sampleID'] = np.nan
@@ -278,7 +283,7 @@ def app():
         df = df[list(df)[-3:] + list(df)[:-3]]
         st.write("GPS IDs assignment... OK")
         st.dataframe(
-            df.loc[1:10, :].style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
+            df.iloc[1:10, :].style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
         )
         
         # diagnosis --> Phenotype
