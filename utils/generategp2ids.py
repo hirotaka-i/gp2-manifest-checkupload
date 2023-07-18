@@ -4,11 +4,12 @@ import numpy as np
 import pandas as pd
 from google.cloud import storage
 
-def update_masterids(blob, ids_log):
+def update_masterids(blob, ids_log, ids_tracker):
     with blob.open("r") as fp:
         masterids = json.load(fp)
     
-    if 'ids_tracker' in globals():
+    #if 'ids_tracker' in globals():
+    if bool(ids_tracker):
         for study, newdata in ids_log.items():
             masterids[study].update(newdata)
     else:
