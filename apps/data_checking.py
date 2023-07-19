@@ -199,7 +199,7 @@ def app():
                 study_tracker = None
             
             if bool(study_tracker):
-                st.write("IN IDS_TRACKER")
+                #st.write("IN IDS_TRACKER")
                 df_subset['GP2sampleID'] = df_subset['sample_id'].apply(lambda x: study_tracker.get(str(x)), np.nan)
                 df_newids = df_subset[df_subset['GP2sampleID'].isnull()].reset_index(drop = True).copy()
                 if not df_newids.empty: # Get new GP2 IDs
@@ -220,7 +220,7 @@ def app():
                     log_new.appen(df_newids)
 
                 else: # Update df with existing GP2 IDs
-                    st.write("IN no new ids")
+                    #st.write("IN no new ids")
                     new = False
                     df_subset['GP2ID'] = df_subset['GP2sampleID'].apply(lambda x: ("_").join(x.split("_")[:-1]))
                     df_subset['SampleRepNo'] = df_subset['GP2sampleID'].apply(lambda x: x.split("_")[-1].replace("s",""))
@@ -228,7 +228,7 @@ def app():
                     log_new.append(df_newids)
             
             else: # Brand new data - Generate GP2 IDs from scratch (n = 1)
-                st.write("IN ALL NEW IDS")
+                #st.write("IN ALL NEW IDS")
                 new = True
                 df_subset['GP2sampleID'] = np.nan
                 uids = [str(id) for id in df_subset['sample_id'].unique()]
