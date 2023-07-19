@@ -1,5 +1,4 @@
 try:
-    import io
     import os
     from io import BytesIO
     import pandas as pd
@@ -8,34 +7,11 @@ try:
     from datetime import datetime
 except Exception as e:
     print("Some modules are not installed {}".format(e))
+    
 
 # Setup the GCP Creds
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
-
-# def get_date():
-#     """ Get year month day sample manifest was uploaded """
-#     dates = [str(datetime.now().year) , str(datetime.now().month), str(datetime.now().day)]
-#     #mydate = 
-#     #return(currentMonth, currentYear)
-#     return "".join(dates)
-
-# def read_manifest(file_extension, source_file):
-#     """Read the manifest uploaded to the app"""
-#     if file_extension in [".csv", ".tsv"]:
-#         data = source_file.getvalue()
-#     else:
-#         data = source_file.getvalue()
-#     return data
-
-# def view_manifest(source_file, file_extension):
-#     """Preview uploaded sample manifest"""
-#     if file_extension in [".csv", ".tsv"]:
-#         bytes_data = source_file.getvalue()
-#         data = bytes_data.decode('utf-8').splitlines()
-#         st.session_state["preview"] = ''
-#         for i in range(0, min(5, len(data))):
-#             st.session_state["preview"] += data[i]    
-#         preview = st.text_area("DATA PREVIEW", "", height = 150, key = "preview")
+#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
 
 def upload_data(bucket_name, data, destination):
     """Upload a file to the bucket."""
@@ -46,7 +22,6 @@ def upload_data(bucket_name, data, destination):
     return "File successfully uploaded to GP2 storage system"
 
 def app():
-
     st.markdown(
         """
         <style>
@@ -85,39 +60,44 @@ def app():
         file_name, file_extension = os.path.splitext(file_details["FileName"])
         
         if file_extension == ".csv":
-            df = pd.read_csv(source_file).head(10)
+            df = pd.read_csv(source_file)
         elif file_extension == ".tsv":
-            df = pd.read_csv(source_file, sep = '\t').head(10)
+            df = pd.read_csv(source_file, sep = '\t')
         elif file_extension == ".xlsx":
-            df = pd.read_excel(source_file, sheet_name=0).head(10)
-
+            df = pd.read_excel(source_file, sheet_name=0)
+        
+        # Do minor processing to make sure columnd types of df matches those in st.session_state["dfqc"]
+        df[['sample_id', 'clinical_id', 'SampleRepNo']] = df[['sample_id','clinical_id', 'SampleRepNo']].astype(str)
+        df = df.reset_index(drop=True)
+        
         
         st.dataframe(
-            df.style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
+            df.head(10).style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
         )
         manifest_check = st.selectbox(
-        "Does the format look correct",
-        ["Yes", "No"]
+            "Does the format look correct",
+            ["Yes", "No"]
         )
-
+        
         # Add uploader button
         if st.button("Upload to GP2 Google Cloud Bucket"):
-            if study_name:
-                if manifest_check == "Yes":
-                    bucket_name = "eu-samplemanifest"
-                    #destination = os.path.join(study_name, file_name + "_" + get_date() + file_extension)
-                    destination = os.path.join(study_name, file_name + file_extension)
-                    data = source_file.getvalue()
-                    check = upload_data(bucket_name, data, destination)
-                    st.markdown(
-                        '<p class="medium-font"> {} !!</p>'.format(check), 
-                        unsafe_allow_html=True)
+            checkdf = df.compare(st.session_state["dfqc"])
+            if checkdf.shape == (0, 0):
+                if study_name:
+                    if manifest_check == "Yes":
+                        bucket_name = "eu-samplemanifest"
+                        #destination = os.path.join(study_name, file_name + "_" + get_date() + file_extension)
+                        destination = os.path.join(study_name, file_name + file_extension)
+                        data = source_file.getvalue()
+                        check = upload_data(bucket_name, data, destination)
+                        st.markdown(
+                            '<p class="medium-font"> {} !!</p>'.format(check), 
+                            unsafe_allow_html=True)
+                    else:
+                        st.markdown("ERROR: Please make sure you have given the study name")
                 else:
-                    st.markdown(
-                        '<p class="medium-font">Please, go back the QC tab and make sure the manifest meets all criteria</p>', 
-                        unsafe_allow_html=True)         
+                    st.error("ERROR: Please make sure you have given the study name")
+            
             else:
-                st.markdown(
-                    '<p class="medium-font">Please make sure you have given the study name </p>', 
-                    unsafe_allow_html=True)
-    
+                st.error("THIS SAMPLE MANIFEST DOES NOT SEEM TO BE QC. PLEASE MOVE TO THE QC TAB AND TRY AGAIN AFTER QC")
+        
