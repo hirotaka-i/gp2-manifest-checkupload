@@ -5,7 +5,8 @@ import pandas as pd
 from google.cloud import storage
 import streamlit as st
 
-@st.cache
+#@st.cache(hash_funcs={'_json.Scanner': hash})
+@st.experimental_memo()
 def update_masterids(ids_log, ids_dict):
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
@@ -24,7 +25,8 @@ def update_masterids(ids_log, ids_dict):
     with blob.open("w") as fp:
         json.dump(masterids, fp)
     
-    print("MASTER IDS UPDATED")
+    return(masterids)
+    #print("MASTER IDS UPDATED")
 
 @st.cache
 def master_key(studies):
