@@ -1,8 +1,6 @@
 try:
     import streamlit as st
     import streamlit.components.v1 as stc
-
-    # File Processing Pkgs
     import ijson
     import json
     import pandas as pd
@@ -16,82 +14,76 @@ try:
     import sys
     import os
     from google.cloud import storage
+    
     sys.path.append('utils')
     import generategp2ids
-    import gc
+    from customcss import load_css
+    from writeread import read_file, output_create
 
 except Exception as e:
     print("Some modules are not installed {}".format(e))
+
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
+#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
 
 
 def jumptwice():
     st.write("##")
     st.write("##")
 
-def read_file(data_file):
-    if data_file.type == "text/csv":
-        df = pd.read_csv(data_file)
-    elif data_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-        df = pd.read_excel(data_file, sheet_name=0)
-    return (df)
+# def read_file(data_file):
+#     if data_file.type == "text/csv":
+#         df = pd.read_csv(data_file)
+#     elif data_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+#         df = pd.read_excel(data_file, sheet_name=0)
+#     return (df)
 
-def to_excel(df):
-    """It returns an excel object sheet with the QC sample manifest
-    written in Sheet1
-    """
-    output = BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    df.to_excel(writer, index=False, sheet_name='Sheet1')
-    workbook = writer.book
-    worksheet = writer.sheets['Sheet1']
-    format1 = workbook.add_format({'num_format': '0.00'})  
-    writer.save()
-    processed_data = output.getvalue()
-    return processed_data
+# def to_excel(df):
+#     """It returns an excel object sheet with the QC sample manifest
+#     written in Sheet1
+#     """
+#     output = BytesIO()
+#     writer = pd.ExcelWriter(output, engine='xlsxwriter')
+#     df.to_excel(writer, index=False, sheet_name='Sheet1')
+#     workbook = writer.book
+#     worksheet = writer.sheets['Sheet1']
+#     format1 = workbook.add_format({'num_format': '0.00'})  
+#     writer.save()
+#     processed_data = output.getvalue()
+#     return processed_data
 
-def output_create(df, filetype = "CSV"):
-    """It returns a tuple with the file content and the name to
-    write through a download button
-    """
-    today = dt.datetime.today()
-    version = f'{today.year}{today.month}{today.day}'
-    study_code = df.study.unique()[0]
+# def output_create(df, filetype = "CSV"):
+#     """It returns a tuple with the file content and the name to
+#     write through a download button
+#     """
+#     today = dt.datetime.today()
+#     version = f'{today.year}{today.month}{today.day}'
+#     study_code = df.study.unique()[0]
 
-    if filetype == "CSV":
-        file = df.to_csv(index=False).encode()
-        ext = "csv"
-    elif filetype == "TSV":
-        file = df.to_csv(index=False, sep="\t").encode()
-        ext = "tsv"
-    else:
-        file = to_excel(df)
-        ext = "xlsx"
-    filename = "{s}_sample_manifest_selfQC_{v}.{e}".format(s=study_code, v = version, e = ext)
+#     if filetype == "CSV":
+#         file = df.to_csv(index=False).encode()
+#         ext = "csv"
+#     elif filetype == "TSV":
+#         file = df.to_csv(index=False, sep="\t").encode()
+#         ext = "tsv"
+#     else:
+#         file = to_excel(df)
+#         ext = "xlsx"
+#     filename = "{s}_sample_manifest_selfQC_{v}.{e}".format(s=study_code, v = version, e = ext)
     
-    return (file, filename)
+#     return (file, filename)
 
 def app():
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
-    st.markdown("""
-    <div id='linkto_top'></div>
-    <style>
-    .big-font {
-        font-family:Helvetica; color:#0f557a; font-size:48px !important;
-    }
-    .medium-font {
-        font-family:Arial; color:000000; font-size:18px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    load_css()
+    st.markdown("""<div id='link_to_top'></div>""", unsafe_allow_html=True)
 
     menu = ["For Fulgent", "For NIH", "For LGC", "For UCL", "For DZNE"]
     choice = st.sidebar.selectbox("Genotyping site",menu)
-
     ph_conf=''
     sex_conf=''
     race_conf = ''
     fh_conf=''
-
     cols = ['study', 'sample_id', 'sample_type',
             'DNA_volume', 'DNA_conc', 'r260_280',
             'Plate_name', 'Plate_position', 'clinical_id',
@@ -105,14 +97,11 @@ def app():
                         'FFPE Block', 'Fresh tissue', 'Frozen tissue',
                         'Bone Marrow Aspirate', 'Whole BMA', 'CD3+ BMA', 'Other']
     fulgent_cols = ['DNA_volume', 'DNA_conc', 'Plate_name', 'Plate_position']
-
     data_file = st.sidebar.file_uploader("Upload Sample Manifest (CSV/XLSX)", type=['csv', 'xlsx'])
-
     file_type = ["CSV", "TSV", "XLSX"]
     output_choice = st.sidebar.selectbox("Select the output format of your sample manifest", file_type)
-
-    # Process allowed_samples
     allowed_samples_strp = [samptype.strip().replace(" ", "") for samptype in allowed_samples]
+
 
     st.markdown('<p class="big-font">GP2 sample manifest self-QC</p>', unsafe_allow_html=True)
     #st.title("GP2 sample manifest self-QC web app")
@@ -124,7 +113,7 @@ def app():
     st.markdown('<p class="medium-font"> Please note all the GP2 required columns must be completed </p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Once you have filled in all the columns avavailable in your cohort, please upload the manifest on the side bar to start the QC process </p>', unsafe_allow_html=True)
 
-    st.text('')
+    
     if data_file is not None:
         st.header("Data Check and self-QC")
 
@@ -523,4 +512,4 @@ def app():
                                    file_name = qcmanifest[1]
                                    )
         jumptwice()
-        st.markdown("<a href='#linkto_top'>Link to top</a>", unsafe_allow_html=True)
+        st.markdown("<a href='#link_to_top'>Link to top</a>", unsafe_allow_html=True)
