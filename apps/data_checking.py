@@ -188,20 +188,20 @@ def app():
         studynames = list(df['study'].unique())
         ids_tracker = generategp2ids.master_key(studies = studynames)
         study_subsets = []
-        
+        log_new = []
         # Let's do GP2 IDs assignment for each study name individually
         for study in studynames:
+            st.write(f"Getting GP2IDs for {study} samples")
             df_subset = df[df.study==study].copy()
             try:
                 study_tracker = ids_tracker[study]
             except:
                 study_tracker = None
-                
+            
             if bool(study_tracker):
                 st.write("IN IDS_TRACKER")
                 df_subset['GP2sampleID'] = df_subset['sample_id'].apply(lambda x: study_tracker.get(str(x)), np.nan)
                 df_newids = df_subset[df_subset['GP2sampleID'].isnull()].reset_index(drop = True).copy()
-                
                 if not df_newids.empty: # Get new GP2 IDs
                     st.write("IN NEW IDS")
                     new = True
@@ -217,6 +217,7 @@ def app():
                     df_newids = generategp2ids.getgp2ids(df_newids, n, uids, study) # Call gp2 IDs assignment function
                     df_subset = pd.concat([df_newids, df_wids], axis = 0) # Subset with all ids present
                     study_subsets.append(df_subset)
+                    log_new.appen(df_newids)
 
                 else: # Update df with existing GP2 IDs
                     st.write("IN no new ids")
@@ -224,6 +225,7 @@ def app():
                     df_subset['GP2ID'] = df_subset['GP2sampleID'].apply(lambda x: ("_").join(x.split("_")[:-1]))
                     df_subset['SampleRepNo'] = df_subset['GP2sampleID'].apply(lambda x: x.split("_")[-1].replace("s",""))
                     study_subsets.append(df_subset)
+                    log_new.append(df_newids)
             
             else: # Brand new data - Generate GP2 IDs from scratch (n = 1)
                 st.write("IN ALL NEW IDS")
@@ -234,20 +236,26 @@ def app():
                 df_newids = df_subset.copy()
                 df_newids = generategp2ids.getgp2ids(df_newids, n, uids, study)
                 study_subsets.append(df_newids)
-
+            
             if new:
                 ids_log = df_newids.groupby('study').apply(lambda x: dict(zip(x['sample_id'],
                                                                             x['GP2sampleID']))).to_dict()
                 generategp2ids.update_masterids(ids_log, study_tracker)
-
+        
         df = pd.concat(study_subsets, axis = 0)
         df = df[list(df)[-3:] + list(df)[:-3]]
         st.write("GPS IDs assignment... OK")
+        jumptwice()
+        if len(log_new) > 0:
+            allnew = pd.concat([log_new], axis = 0)
+            st.write("Thanks for uploading a new version of the manuscript")
+            st.write(f'We have detected a total of new {allnew.shape[0]} samples')
+            st.write("We have assigned new GP2IDs to those...")
+
         st.dataframe(
             df.iloc[1:10, :].style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
         )
         
-
         # diagnosis --> Phenotype
         jumptwice()
         st.subheader('Create "Phenotype"')
