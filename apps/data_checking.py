@@ -15,9 +15,10 @@ try:
     import xlsxwriter
     import sys
     import os
-    from google.cloud import storage    
+    from google.cloud import storage
     sys.path.append('utils')
     import generategp2ids
+    import gc
 
 except Exception as e:
     print("Some modules are not installed {}".format(e))
@@ -49,13 +50,13 @@ def to_excel(df):
     return processed_data
 
 def output_create(df, filetype = "CSV"):
-    """It returns a tuple with the file content and the name to 
+    """It returns a tuple with the file content and the name to
     write through a download button
     """
     today = dt.datetime.today()
     version = f'{today.year}{today.month}{today.day}'
     study_code = df.study.unique()[0]
-    
+
     if filetype == "CSV":
         file = df.to_csv(index=False).encode()
         ext = "csv"
@@ -66,8 +67,8 @@ def output_create(df, filetype = "CSV"):
         file = to_excel(df)
         ext = "xlsx"
     filename = "{s}_sample_manifest_selfQC_{v}.{e}".format(s=study_code, v = version, e = ext)
+    
     return (file, filename)
-
 
 def app():
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
@@ -130,7 +131,7 @@ def app():
         # read a file
         df = read_file(data_file)
         df.index = df.index +2
-        
+
         df['Genotyping_site'] = choice.replace('For ', '')
         if choice=='For Fulgent':
             required_cols = required_cols + fulgent_cols
@@ -170,24 +171,15 @@ def app():
                 df['sample_type'] = newsampletype
                 st.text('sample type count after removing undesired whitespaces')
                 st.write(df.sample_type.astype('str').value_counts())
-                
+
                 if len(not_allowed_v2)>0:
                     st.text('In addition, we have found unknown sample types')
-                    #st.error(f'sample_type: {not_allowed} not allowed.')
                     st.error(f'sample_type: {not_allowed_v2} not allowed.')
                     sample_list = '\n * '.join(allowed_samples)
                     st.text('Writing entries with sample_type not allowed')
                     st.write(df[df['sample_type'].isin(not_allowed_v2)])
                     st.text(f'Allowed sample list - \n * {sample_list}')
                     st.stop()
-                # else: # Map the stripped sample types back to the harmonised names
-                    
-                #     st.text('Processing whitespaces found in certain sample_type entries')
-                #     stype_map = dict(zip(allowed_samples_strp, allowed_samples))
-                #     newsampletype = sampletype.replace(stype_map)
-                #     df['sample_type'] = newsampletype
-                #     st.text('sample type after removing undesired whitespaces')
-                #     st.write(df.sample_type.astype('str').value_counts())
 
         # Convert sample and clinical id to strings
         df[['sample_id', 'clinical_id']] = df[['sample_id','clinical_id']].astype(str)
@@ -205,67 +197,47 @@ def app():
         # GENERATE GP2 IDs #
         st.subheader('Assign GP2 IDs... Please wait')
         studynames = list(df['study'].unique())
-        # ACCESS MASTERGP2IDS_JSON IN GP2 BUCKET
-        client = storage.Client()
-        bucket = client.get_bucket('eu-samplemanifest')
-        blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230718.json')
-        ids_tracker = {}
-        with blob.open("r") as f:
-            for cohort in studynames:
-                for record in ijson.items(f, cohort):
-                    ids_tracker.update({cohort : record})
-        #st.write(f'is IDs tracker empty?': bool(ids_tracker))
-        #st.write(ids_tracker)
-
+        ids_tracker = generategp2ids.master_key(studies = studynames)
         study_subsets = []
+        
+        # Let's do GP2 IDs assignment for each study name individually
         for study in studynames:
             df_subset = df[df.study==study].copy()
-            #if 'ids_tracker' in globals():       
             try:
                 study_tracker = ids_tracker[study]
             except:
                 study_tracker = None
-            
+                
             if bool(study_tracker):
                 st.write("IN IDS_TRACKER")
-                st.write(study_tracker)
                 df_subset['GP2sampleID'] = df_subset['sample_id'].apply(lambda x: study_tracker.get(str(x)), np.nan)
-                st.write(df_subset.head())
-                st.write(df_subset.info())
                 df_newids = df_subset[df_subset['GP2sampleID'].isnull()].reset_index(drop = True).copy()
-                #print(df_newids)
-                if not df_newids.empty:
+                
+                if not df_newids.empty: # Get new GP2 IDs
                     st.write("IN NEW IDS")
-                    # Get chunk of df with existing GP2Sample IDs and save
-                    # Get uids missing GP2 IDs
                     new = True
                     df_wids = df_subset[~df_subset['GP2sampleID'].isnull()].reset_index(drop = True).copy()
                     df_wids['GP2ID'] = df_wids['GP2sampleID'].apply(lambda x: ("_").join(x.split("_")[:-1]))
-                    df_wids['SampleRepNo'] = df_wids['GP2sampleID'].apply(lambda x: x.split("_")[-1])#.replace("s","")) 
-                    
+                    df_wids['SampleRepNo'] = df_wids['GP2sampleID'].apply(lambda x: x.split("_")[-1])#.replace("s",""))
+
                     uids = [str(id) for id in df_subset['sample_id'].unique()]
                     uids = np.setdiff1d(uids, list(study_tracker.keys())) # Get the new IDs
                     n=int(max(list(study_tracker.values())).split("_")[1])+1
-                    
+
                     # Work on samples missing GP2 IDs
                     df_newids = generategp2ids.getgp2ids(df_newids, n, uids, study) # Call gp2 IDs assignment function
                     df_subset = pd.concat([df_newids, df_wids], axis = 0) # Subset with all ids present
-                    st.dataframe(df_newids.iloc[1:20,:])
-                    st.dataframe(df_subset.iloc[1:20,:])
                     study_subsets.append(df_subset)
 
-                else:
+                else: # Update df with existing GP2 IDs
                     st.write("IN no new ids")
                     new = False
-                    # Update df with GP2 IDs
-                    #df = df[~df['GP2sampleID'].isnull()].reset_index().copy()
                     df_subset['GP2ID'] = df_subset['GP2sampleID'].apply(lambda x: ("_").join(x.split("_")[:-1]))
                     df_subset['SampleRepNo'] = df_subset['GP2sampleID'].apply(lambda x: x.split("_")[-1].replace("s",""))
-                    study_subsets.append(df_subset)   
-            else:
+                    study_subsets.append(df_subset)
+            
+            else: # Brand new data - Generate GP2 IDs from scratch (n = 1)
                 st.write("IN ALL NEW IDS")
-                st.write(study_tracker)
-                # Brand new data - Generate GP2 IDs from scratch (n = 1)
                 new = True
                 df_subset['GP2sampleID'] = np.nan
                 uids = [str(id) for id in df_subset['sample_id'].unique()]
@@ -275,9 +247,9 @@ def app():
                 study_subsets.append(df_newids)
 
             if new:
-                ids_log = df_newids.groupby('study').apply(lambda x: dict(zip(x['sample_id'], 
+                ids_log = df_newids.groupby('study').apply(lambda x: dict(zip(x['sample_id'],
                                                                             x['GP2sampleID']))).to_dict()
-                generategp2ids.update_masterids(blob, ids_log, study_tracker)
+                generategp2ids.update_masterids(ids_log, study_tracker)
 
         df = pd.concat(study_subsets, axis = 0)
         df = df[list(df)[-3:] + list(df)[:-3]]
@@ -286,10 +258,10 @@ def app():
             df.iloc[1:10, :].style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
         )
         
+
         # diagnosis --> Phenotype
         jumptwice()
         st.subheader('Create "Phenotype"')
-
         st.text('Show study arm versus diagnosis')
         # Add xtab for diagnosis vs study arm
         xtab = df.pivot_table(index='study_arm', columns='diagnosis', margins=True,
@@ -309,31 +281,32 @@ def app():
                 mydiag = diag[i]
                 phenotypes[mydiag]=x.selectbox(f"[{mydiag}]: For QC, please pick the closest Phenotype",["PD", "Control", "Prodromal", \
                                                                                                          "Other", "Not Reported", "MSA", \
-                                                                                                         "PSP", "DLB", "CBS", "AD", "FTD", "VSC"], 
+                                                                                                         "PSP", "DLB", "CBS", "AD", "FTD", "VSC"],
                                                                                                          key=i)
         df['Phenotype'] = df.diagnosis.map(phenotypes)
+
 
         # cross-tabulation of diagnosis and Phenotype
         st.text('=== Phenotype x diagnosis===')
         xtab = df.pivot_table(index='Phenotype', columns='diagnosis', margins=True,
                                 values='sample_id', aggfunc='count', fill_value=0)
         st.write(xtab)
-        
+
         ph_conf = st.checkbox('Confirm Phenotype?')
         if ph_conf:
             st.info('Thank you')
-        
+
         # Get QCed Phenotype and map it to PD, Control, Other
         pattern_other = '|'.join(['Prodromal', 'NotReported', 'MSA', 'PSP', 'DLB', 'CBS', 'AD'])
         df['phenotype_for_qc'] = df['Phenotype'].str.replace(" ", "").str.replace(pattern_other, 'Other')
-        
-        
+
+
         # sex for qc
         jumptwice()
         st.subheader('Create "biological_sex_for_qc"')
         st.text('Count per sex group')
         st.write(df.sex.astype('str').value_counts())
-        
+
         jumptwice()
         sexes=df.sex.dropna().unique()
         n_sexes = st.columns(len(sexes))
@@ -341,49 +314,50 @@ def app():
         for i, x in enumerate(n_sexes):
             with x:
                 sex = sexes[i]
-                mapdic[sex]=x.selectbox(f"[{sex}]: For QC, please pick a word below", 
+                mapdic[sex]=x.selectbox(f"[{sex}]: For QC, please pick a word below",
                                     ["Male", "Female", "Other/Unknown/Not Reported"], key=i)
         df['biological_sex_for_qc'] = df.sex.replace(mapdic)
 
         # cross-tabulation
         st.text('=== biological_sex_for_qc x sex ===')
         xtab = df.pivot_table(index='biological_sex_for_qc', columns='sex', margins=True,
-                                values='sample_id', aggfunc='count', fill_value=0)            
+                                values='sample_id', aggfunc='count', fill_value=0)
         st.write(xtab)
-        
+
         sex_conf = st.checkbox('Confirm biological_sex_for_qc?')
         if sex_conf:
             st.info('Thank you')
-            
+
             if 'Other/Unknown/Not Reported' in df['biological_sex_for_qc'].unique():
                 sex_count = df['biological_sex_for_qc'].value_counts()
                 unknown_rate = sex_count['Other/Unknown/Not Reported'] / df.shape[0]
                 if unknown_rate > 0.01:
                     st.text("The number of samples with \"Other/Unknown/Not Reported\" sex category is higher than 1% ")
                     st.warning("Please check that you selected the right sex values for your samples above ")
-        
+
+
         # race for qc
         jumptwice()
         st.subheader('Create "race_for_qc"')
         st.text('Count per race (Not Reported = missing)')
         df['race_for_qc'] = df.race.fillna('Not Reported')
         st.write(df.race_for_qc.astype('str').value_counts())
-        
+
         jumptwice()
         races = df.race.dropna().unique()
         nmiss = sum(pd.isna(df.race))
 
         if nmiss>0:
             st.text(f'{nmiss} entries missing race...')
-            
-        
+
         mapdic = {'Not Reported':'Not Reported'}
         for race in races:
             mapdic[race]=st.selectbox(f"[{race}]: For QC purppose, select the best match from the followings",
-            ["American Indian or Alaska Native", "Asian", "White", "Black or African American", 
+            ["American Indian or Alaska Native", "Asian", "White", "Black or African American",
             "Multi-racial", "Native Hawaiian or Other Pacific Islander", "Other", "Unknown", "Not Reported"])
         df['race_for_qc'] = df.race_for_qc.map(mapdic)
-        
+
+
         # cross-tabulation
         st.text('=== race_for_qc X race ===')
         dft = df.copy()
@@ -391,11 +365,12 @@ def app():
         xtab = dft.pivot_table(index='race_for_qc', columns='race', margins=True,
                                 values='sample_id', aggfunc='count', fill_value=0)
         st.write(xtab)
-        
+
         race_conf = st.checkbox('Confirm race_for_qc?')
         if race_conf:
             st.info('Thank you')
-        
+
+
         # family history for qc
         jumptwice()
         st.subheader('Create "family_history_for_qc"')
@@ -404,12 +379,11 @@ def app():
         st.write(df.family_history_for_qc.astype('str').value_counts())
         family_historys = df.family_history.dropna().unique()
         nmiss = sum(pd.isna(df.family_history))
-        
+
         if nmiss>0:
             st.text(f'{nmiss} entries missing family_history')
         mapdic = {'Not Reported':'Not Reported'}
         jumptwice()
-
 
         if len(family_historys)>0:
             n_fhs = st.columns(len(family_historys))
@@ -419,7 +393,8 @@ def app():
                     mapdic[fh]=x.selectbox(f'[{fh}]: For QC, any family history?',['Yes', 'No', 'Not Reported'], key=i)
         df['family_history_for_qc'] = df.family_history_for_qc.map(mapdic).fillna('Not Assigned')
 
-        # cross-tabulation 
+
+        # cross-tabulation
         st.text('=== family_history_for_qc X family_history ===')
         dft = df.copy()
         dft['family_history'] = dft.family_history.fillna('_Missing')
@@ -431,6 +406,7 @@ def app():
         if fh_conf:
             st.info('Thank you')
 
+
         # Region for qc
         jumptwice()
         st.subheader('Create "region_for_qc"')
@@ -439,12 +415,11 @@ def app():
         st.write(df.region_for_qc.astype('str').value_counts())
         regions = df.region.dropna().unique()
         nmiss = sum(pd.isna(df.region))
-        
+
         if nmiss>0:
             st.text(f'{nmiss} entries missing for region')
         mapdic = {'Not Reported':'Not Reported'}
         jumptwice()
-
 
         if len(regions)>0:
             st.text('if ISO 3166-3 is available for the region, please provide')
@@ -458,7 +433,7 @@ def app():
                         mapdic[region]=region_to_map
         df['region_for_qc'] = df.region_for_qc.map(mapdic).fillna('Not Assigned')
 
-        # cross-tabulation 
+        # cross-tabulation
         st.text('=== region_for_qc X region ===')
         dft = df.copy()
         dft['region'] = dft.region.fillna('_Missing')
@@ -480,7 +455,7 @@ def app():
         st.subheader('Plate Info')
         dft = df.copy()
         dft['Plate_name'] = dft.Plate_name.fillna('_Missing')
-        xtab = dft.pivot_table(index='Plate_name', 
+        xtab = dft.pivot_table(index='Plate_name',
                             columns='diagnosis', margins=True,
                             values='sample_id', aggfunc='count', fill_value=0)
         st.write(xtab)
@@ -523,9 +498,6 @@ def app():
                     st.write(df[v].value_counts(dropna=False))
                 else:
                     st.text(f'{v} - histogram ({nmiss} entries missing)')
-                    #fig, ax = plt.subplots(figsize=(11,6))
-                    #ax.hist(df[v].values, bins=20)
-                    #st.pyplot(fig)
                     fig, ax_hist = plt.subplots(
                         figsize = (11,6)
                     )
@@ -535,16 +507,15 @@ def app():
                                     ax = ax_hist)
                     fig.set_tight_layout(True)
                     st.pyplot(fig)
-                    #import plotly_express as px
-                    #plot = px.histogram(x=v, data_frame=df)
-                    #st.plotly_chart(plot)
                 jumptwice()
-
+                
         if st.button("Finished?"):
             if not (ph_conf & sex_conf & race_conf & fh_conf & rg_conf):
                 st.error('Did you forget to confirm any of the steps above?')
-                st.text("Please, tick all the boxes on the previous steps if the QC to meet GP2 standard format was successful")
+                st.error("Please, tick all the boxes on the previous steps if the QC to meet GP2 standard format was successful")
             else:
+                df = df.reset_index(drop=True)
+                st.session_state['dfqc'] = df
                 st.markdown('<p class="medium-font"> CONGRATS, your sample manifest meets all the GP2 requirements. </p>', unsafe_allow_html=True )
                 qcmanifest = output_create(df, filetype=output_choice)
                 st.download_button(label='📥 Download your QC sample manifest',
