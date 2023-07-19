@@ -5,42 +5,19 @@ try:
     from google.cloud import storage
     import streamlit as st
     from datetime import datetime
+    import sys
+    sys.path.append('utils')
+    from customcss import load_css
+    from writeread import upload_data
 except Exception as e:
     print("Some modules are not installed {}".format(e))
-    
 
 # Setup the GCP Creds
 #os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
 
-def upload_data(bucket_name, data, destination):
-    """Upload a file to the bucket."""
-    storage_client = storage.Client()
-    bucket = storage_client.get_bucket(bucket_name)
-    blob = bucket.blob(destination)
-    blob.upload_from_string(data)
-    return "File successfully uploaded to GP2 storage system"
-
 def app():
-    st.markdown(
-        """
-        <style>
-        textarea {
-            font-family:Arial; font-size: 25px;
-        }
-        input {
-            font-family:Arial; font-size: 25px;
-        }
-        .big-font {
-            font-family:Helvetica; color:#0f557a; font-size:48px !important;
-        }
-        .medium-font {
-            font-family:Arial; color:000000; font-size:18px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+    load_css()
     st.markdown('<p class="big-font"> GP2 Sample Uploader System</p>', unsafe_allow_html=True)
 
     # Add study name text box
