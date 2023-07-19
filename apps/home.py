@@ -1,29 +1,14 @@
 try:
     import streamlit as st
     from PIL import Image
+    import sys
+    sys.path.append('utils')
+    from customcss import load_css
 except Exception as e:
     print("Some modules are not installed {}".format(e))
 
 def app():
-    st.markdown("""
-    <style>
-    .big-font {
-        font-family:Helvetica; color:#0f557a; font-size:48px !important;
-    }
-    .medium-font {
-        font-family:Arial; color:000000; font-size:18px;
-    }
-    div.stButton > button:first-child {
-        background-color: #D3D3D3;
-        height: auto;
-        color: black;
-        padding-top: 10px !important;
-        padding-bottom: 10px !important;
-        font-size: 20px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
+    load_css()
     st.markdown('<p class="big-font">Welcome to the GP2 Complex Hub QC and Upload system</p>', unsafe_allow_html=True)
 
     st.markdown('<p class="medium-font">At the top, you can find navigation bar</p>', unsafe_allow_html=True)
