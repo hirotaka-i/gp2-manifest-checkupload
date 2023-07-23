@@ -8,9 +8,9 @@ except Exception as e:
     print("Some modules are not installed {}".format(e))
 
 def app():
-    load_css()
+    #load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
+    load_css("/app/apps/css/css.css")
     st.markdown('<p class="big-font">Welcome to the GP2 Complex Hub QC and Upload system</p>', unsafe_allow_html=True)
-
     st.markdown('<p class="medium-font">At the top, you can find navigation bar</p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Please, move to the QC bar to do the guided data QC. </p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Once the QC is completed, download the file and move to the Upload bar to store your manifest on a \
