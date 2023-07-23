@@ -217,10 +217,10 @@ def app():
                     df_newids = generategp2ids.getgp2ids(df_newids, n, uids, study) # Call gp2 IDs assignment function
                     df_subset = pd.concat([df_newids, df_wids], axis = 0) # Subset with all ids present
                     study_subsets.append(df_subset)
-                    log_new.appen(df_newids)
+                    log_new.append(df_newids)
 
                 else: # Update df with existing GP2 IDs
-                    #st.write("IN no new ids")
+                    st.write("IN no new ids")
                     new = False
                     df_subset['GP2ID'] = df_subset['GP2sampleID'].apply(lambda x: ("_").join(x.split("_")[:-1]))
                     df_subset['SampleRepNo'] = df_subset['GP2sampleID'].apply(lambda x: x.split("_")[-1].replace("s",""))
@@ -228,7 +228,7 @@ def app():
                     log_new.append(df_newids)
             
             else: # Brand new data - Generate GP2 IDs from scratch (n = 1)
-                #st.write("IN ALL NEW IDS")
+                st.write("IN ALL NEW IDS")
                 new = True
                 df_subset['GP2sampleID'] = np.nan
                 uids = [str(id) for id in df_subset['sample_id'].unique()]
@@ -247,7 +247,7 @@ def app():
         st.write("GPS IDs assignment... OK")
         jumptwice()
         if len(log_new) > 0:
-            allnew = pd.concat([log_new], axis = 0)
+            allnew = pd.concat(log_new, axis = 0)
             st.write("Thanks for uploading a new version of the manuscript")
             st.write(f'We have detected a total of new {allnew.shape[0]} samples')
             st.write("We have assigned new GP2IDs to those...")
