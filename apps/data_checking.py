@@ -1,6 +1,8 @@
 try:
+    import os
+    import sys
     import streamlit as st
-    import streamlit.components.v1 as stc
+    #import streamlit.components.v1 as stc
     import ijson
     import json
     import pandas as pd
@@ -11,73 +13,26 @@ try:
     import seaborn as sns
     from io import BytesIO
     import xlsxwriter
-    import sys
-    import os
     from google.cloud import storage
-    
     sys.path.append('utils')
     import generategp2ids
     from customcss import load_css
     from writeread import read_file, output_create
-
 except Exception as e:
     print("Some modules are not installed {}".format(e))
 
-
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
-#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
-
+# #os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
 
 def jumptwice():
     st.write("##")
     st.write("##")
-
-# def read_file(data_file):
-#     if data_file.type == "text/csv":
-#         df = pd.read_csv(data_file)
-#     elif data_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-#         df = pd.read_excel(data_file, sheet_name=0)
-#     return (df)
-
-# def to_excel(df):
-#     """It returns an excel object sheet with the QC sample manifest
-#     written in Sheet1
-#     """
-#     output = BytesIO()
-#     writer = pd.ExcelWriter(output, engine='xlsxwriter')
-#     df.to_excel(writer, index=False, sheet_name='Sheet1')
-#     workbook = writer.book
-#     worksheet = writer.sheets['Sheet1']
-#     format1 = workbook.add_format({'num_format': '0.00'})  
-#     writer.save()
-#     processed_data = output.getvalue()
-#     return processed_data
-
-# def output_create(df, filetype = "CSV"):
-#     """It returns a tuple with the file content and the name to
-#     write through a download button
-#     """
-#     today = dt.datetime.today()
-#     version = f'{today.year}{today.month}{today.day}'
-#     study_code = df.study.unique()[0]
-
-#     if filetype == "CSV":
-#         file = df.to_csv(index=False).encode()
-#         ext = "csv"
-#     elif filetype == "TSV":
-#         file = df.to_csv(index=False, sep="\t").encode()
-#         ext = "tsv"
-#     else:
-#         file = to_excel(df)
-#         ext = "xlsx"
-#     filename = "{s}_sample_manifest_selfQC_{v}.{e}".format(s=study_code, v = version, e = ext)
-    
-#     return (file, filename)
-
 def app():
-    load_css()
+    load_css("/app/apps/css/css.css")
+    #os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
+    #os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
     st.markdown("""<div id='link_to_top'></div>""", unsafe_allow_html=True)
-
+    st.write("IN")
     menu = ["For Fulgent", "For NIH", "For LGC", "For UCL", "For DZNE"]
     choice = st.sidebar.selectbox("Genotyping site",menu)
     ph_conf=''
@@ -104,7 +59,6 @@ def app():
 
 
     st.markdown('<p class="big-font">GP2 sample manifest self-QC</p>', unsafe_allow_html=True)
-    #st.title("GP2 sample manifest self-QC web app")
     st.markdown('<p class="medium-font"> This is a web app to self-check the sample manifest. </p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Download the template from the link below. Once you open the link, go to "File"> "Download" > "xlsx" or "csv" format. </p>', unsafe_allow_html=True)
     st.markdown('[Access the sample manifest dictionary and a template](https://docs.google.com/spreadsheets/d/1SCCJzZ342z2bEki2y9QZOzEEXUb3COa1OhXEvOfaTiM/edit#gid=227954521)', unsafe_allow_html=True)
@@ -113,7 +67,6 @@ def app():
     st.markdown('<p class="medium-font"> Please note all the GP2 required columns must be completed </p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Once you have filled in all the columns avavailable in your cohort, please upload the manifest on the side bar to start the QC process </p>', unsafe_allow_html=True)
 
-    
     if data_file is not None:
         st.header("Data Check and self-QC")
 
@@ -183,7 +136,7 @@ def app():
             st.text(f'N of sample_id (entries):{df.shape[0]}')
             st.text(f'N of unique clinical_id : {len(df.clinical_id.unique())}')
 
-        # GENERATE GP2 IDs #
+        #GENERATE GP2 IDs #
         st.subheader('Assigning GP2 IDs... Please wait')
         studynames = list(df['study'].unique())
         ids_tracker = generategp2ids.master_key(studies = studynames)
@@ -197,7 +150,7 @@ def app():
                 study_tracker = ids_tracker[study]
             except:
                 study_tracker = None
-            
+
             if bool(study_tracker):
                 #st.write("IN IDS_TRACKER")
                 df_subset['GP2sampleID'] = df_subset['sample_id'].apply(lambda x: study_tracker.get(str(x)), np.nan)
@@ -226,7 +179,7 @@ def app():
                     df_subset['SampleRepNo'] = df_subset['GP2sampleID'].apply(lambda x: x.split("_")[-1].replace("s",""))
                     study_subsets.append(df_subset)
                     log_new.append(df_newids)
-            
+
             else: # Brand new data - Generate GP2 IDs from scratch (n = 1)
                 #st.write("IN ALL NEW IDS")
                 new = True
@@ -236,12 +189,12 @@ def app():
                 df_newids = df_subset.copy()
                 df_newids = generategp2ids.getgp2ids(df_newids, n, uids, study)
                 study_subsets.append(df_newids)
-            
+
             if new:
                 ids_log = df_newids.groupby('study').apply(lambda x: dict(zip(x['sample_id'],
                                                                             x['GP2sampleID']))).to_dict()
                 generategp2ids.update_masterids(ids_log, study_tracker)
-        
+
         df = pd.concat(study_subsets, axis = 0)
         df = df[list(df)[-3:] + list(df)[:-3]]
         st.write("GPS IDs assignment... OK")
@@ -255,7 +208,7 @@ def app():
         st.dataframe(
             df.iloc[1:10, :].style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
         )
-        
+
         # diagnosis --> Phenotype
         jumptwice()
         st.subheader('Create "Phenotype"')
@@ -505,7 +458,7 @@ def app():
                     fig.set_tight_layout(True)
                     st.pyplot(fig)
                 jumptwice()
-                
+
         if st.button("Finished?"):
             if not (ph_conf & sex_conf & race_conf & fh_conf & rg_conf):
                 st.error('Did you forget to confirm any of the steps above?')
