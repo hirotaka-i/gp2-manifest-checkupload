@@ -184,7 +184,7 @@ def app():
             st.text(f'N of unique clinical_id : {len(df.clinical_id.unique())}')
 
         # GENERATE GP2 IDs #
-        st.subheader('Assign GP2 IDs... Please wait')
+        st.subheader('Assigning GP2 IDs... Please wait')
         studynames = list(df['study'].unique())
         ids_tracker = generategp2ids.master_key(studies = studynames)
         study_subsets = []
@@ -203,7 +203,7 @@ def app():
                 df_subset['GP2sampleID'] = df_subset['sample_id'].apply(lambda x: study_tracker.get(str(x)), np.nan)
                 df_newids = df_subset[df_subset['GP2sampleID'].isnull()].reset_index(drop = True).copy()
                 if not df_newids.empty: # Get new GP2 IDs
-                    st.write("IN NEW IDS")
+                    #st.write("IN NEW IDS")
                     new = True
                     df_wids = df_subset[~df_subset['GP2sampleID'].isnull()].reset_index(drop = True).copy()
                     df_wids['GP2ID'] = df_wids['GP2sampleID'].apply(lambda x: ("_").join(x.split("_")[:-1]))
@@ -220,7 +220,7 @@ def app():
                     log_new.append(df_newids)
 
                 else: # Update df with existing GP2 IDs
-                    st.write("IN no new ids")
+                    #st.write("IN no new ids")
                     new = False
                     df_subset['GP2ID'] = df_subset['GP2sampleID'].apply(lambda x: ("_").join(x.split("_")[:-1]))
                     df_subset['SampleRepNo'] = df_subset['GP2sampleID'].apply(lambda x: x.split("_")[-1].replace("s",""))
@@ -228,7 +228,7 @@ def app():
                     log_new.append(df_newids)
             
             else: # Brand new data - Generate GP2 IDs from scratch (n = 1)
-                st.write("IN ALL NEW IDS")
+                #st.write("IN ALL NEW IDS")
                 new = True
                 df_subset['GP2sampleID'] = np.nan
                 uids = [str(id) for id in df_subset['sample_id'].unique()]
