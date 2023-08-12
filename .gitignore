@@ -3,3 +3,8 @@ secrets/*
 log.txt
 Pipfile.lock
 Pipfile
+utils/__pycache__/
+ARCHIVE/
+DEBUG/
+IDEAS
+
