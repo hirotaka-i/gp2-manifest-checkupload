@@ -8,8 +8,8 @@ except Exception as e:
     print("Some modules are not installed {}".format(e))
 
 def app():
-    #load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
-    load_css("/app/apps/css/css.css")
+    load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
+    #load_css("/app/apps/css/css.css")
     st.markdown('<p class="big-font">Welcome to the GP2 Complex Hub QC and Upload system</p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font">At the top, you can find navigation bar</p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Please, move to the QC bar to do the guided data QC. </p>', unsafe_allow_html=True)
@@ -22,10 +22,3 @@ def app():
     image = Image.open('apps/img/GP2_logo_color.png')
     head_1, gp2_logo, head_3 = st.columns([0.6, 1, 0.6])
     gp2_logo.image(image, width=600)
-
-    st.write("##")
-    
-    if st.button('Show me the video demo'):
-        side = max((100 - 80) / 2, 0.01)
-        _, container, _ = st.columns([side, 80, side])
-        container.video(data='apps/vid/demo.webm')
