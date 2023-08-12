@@ -5,12 +5,14 @@ import pandas as pd
 from google.cloud import storage
 import streamlit as st
 
+
 #@st.cache(hash_funcs={'_json.Scanner': hash})
 @st.experimental_memo()
 def update_masterids(ids_log, ids_dict):
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
-    blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230718.json')
+    #blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230718.json')
+    blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230810.json')
     
     with blob.open("r") as fp:
         masterids = json.load(fp)
@@ -28,12 +30,14 @@ def update_masterids(ids_log, ids_dict):
     return(masterids)
     #print("MASTER IDS UPDATED")
 
+
 @st.cache
 def master_key(studies):
     # ACCESS MASTERGP2IDS_JSON IN GP2 BUCKET
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
-    blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230718.json')
+    #blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230718.json')
+    blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230810.json')
     
     ids_tracker = {}
     with blob.open("r") as f:
@@ -43,11 +47,7 @@ def master_key(studies):
     
     return(ids_tracker)
 
-# CONVERT THIS INTO A FUNCTIONS
-# INPUT
-    # uids
-    # n
-    #df_newids
+
 def getgp2ids(df_updateids, n, uids, study_code):
     mapid = {}
     for uid in uids:
@@ -61,6 +61,25 @@ def getgp2ids(df_updateids, n, uids, study_code):
     mydf['SampleRepNo'] = 's' + mydf.uid_idx_cumcount.astype('str')
     mydf.drop(['uid_idx','uid_idx_cumcount'], axis = 1, inplace = True)
     return(mydf)
+
+
+def assign_unique_gp2clinicalids(df, clinicalid_subset):
+
+    if isinstance(clinicalid_subset, pd.Series):
+        clinicalid_subset = clinicalid_subset.to_frame().T
+
+    sampleid = clinicalid_subset.sort_values(by=['master_GP2sampleID'])\
+                                .reset_index(drop = True)\
+                                .dropna(subset=['master_GP2sampleID'], axis = 0)
+    sampleid = sampleid.loc[sampleid.index[-1], 'master_GP2sampleID'].split("_")
+    getuniqueid = sampleid[0] + "_" + sampleid[1]
+    get_sidrepno = int(sampleid[2].replace("s","")) + 1
+
+    index_modify = clinicalid_subset['index'].unique() #clinicalid_subset[clinicalid_subset['GP2sampleID'].isnull()] #.index
+    assign_gp2sampleid = [getuniqueid + "_s" + str(get_sidrepno + i) for i in range(len(index_modify))]
+    df.loc[index_modify, 'GP2sampleID'] = assign_gp2sampleid
+    getnewidrows = df.loc[index_modify].copy()
+    return (getnewidrows)
 
 
 
