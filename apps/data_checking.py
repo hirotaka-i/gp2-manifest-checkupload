@@ -1,40 +1,54 @@
 try:
+    import streamlit as st
     import os
     import sys
-    import streamlit as st
-    #import streamlit.components.v1 as stc
-    import ijson
-    import json
     import pandas as pd
     import numpy as np
-    import base64
-    import datetime as dt
     import matplotlib.pyplot as plt
     import seaborn as sns
-    from io import BytesIO
-    import xlsxwriter
-    from google.cloud import storage
+    from st_aggrid import AgGrid, GridOptionsBuilder
+
     sys.path.append('utils')
     import generategp2ids
     from customcss import load_css
-    from writeread import read_file, output_create
+    from writeread import read_filev2, to_excelv2
+    
+    #from io import BytesIO
+    #import xlsxwriter
+    #from google.cloud import storage
+    #import base64
+    #import datetime as dt
+    #import ijson
+    #import json
 except Exception as e:
     print("Some modules are not installed {}".format(e))
 
-# #os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
+#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
 
 def jumptwice():
     st.write("##")
     st.write("##")
+
 def app():
-    load_css("/app/apps/css/css.css")
-    #os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
-    #os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
+    #load_css("/app/apps/css/css.css")
+    load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
+    
     st.markdown("""<div id='link_to_top'></div>""", unsafe_allow_html=True)
-    st.write("IN")
+    st.markdown('<p class="big-font">GP2 sample manifest self-QC</p>', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> This is a web app to self-check the sample manifest. </p>', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> Download the template from the link below. Once you open the link, go to "File"> "Download" > "xlsx" or "csv" format. </p>', unsafe_allow_html=True)
+    st.markdown('[Access the sample manifest dictionary and a template](https://docs.google.com/spreadsheets/d/1SCCJzZ342z2bEki2y9QZOzEEXUb3COa1OhXEvOfaTiM/edit#gid=227954521)', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> Please refer to the second tab (Dictionary) for instructions. </p>', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> Please refer to the first tab (Template) to access sample manifest template to fill in. </p>', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> Please note all the GP2 required columns must be completed </p>', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> Once you have filled in all the columns avavailable in your cohort, please upload the manifest on the side bar to start the QC process </p>', unsafe_allow_html=True)
+
+
+    data_file = st.sidebar.file_uploader("Upload Your Sample manifest (CSV/XLSX)", type=['xlsx'])
     menu = ["For Fulgent", "For NIH", "For LGC", "For UCL", "For DZNE"]
     choice = st.sidebar.selectbox("Genotyping site",menu)
+
     ph_conf=''
     sex_conf=''
     race_conf = ''
@@ -52,28 +66,55 @@ def app():
                         'FFPE Block', 'Fresh tissue', 'Frozen tissue',
                         'Bone Marrow Aspirate', 'Whole BMA', 'CD3+ BMA', 'Other']
     fulgent_cols = ['DNA_volume', 'DNA_conc', 'Plate_name', 'Plate_position']
-    data_file = st.sidebar.file_uploader("Upload Sample Manifest (CSV/XLSX)", type=['csv', 'xlsx'])
-    file_type = ["CSV", "TSV", "XLSX"]
-    output_choice = st.sidebar.selectbox("Select the output format of your sample manifest", file_type)
+    
     allowed_samples_strp = [samptype.strip().replace(" ", "") for samptype in allowed_samples]
 
-
-    st.markdown('<p class="big-font">GP2 sample manifest self-QC</p>', unsafe_allow_html=True)
-    st.markdown('<p class="medium-font"> This is a web app to self-check the sample manifest. </p>', unsafe_allow_html=True)
-    st.markdown('<p class="medium-font"> Download the template from the link below. Once you open the link, go to "File"> "Download" > "xlsx" or "csv" format. </p>', unsafe_allow_html=True)
-    st.markdown('[Access the sample manifest dictionary and a template](https://docs.google.com/spreadsheets/d/1SCCJzZ342z2bEki2y9QZOzEEXUb3COa1OhXEvOfaTiM/edit#gid=227954521)', unsafe_allow_html=True)
-    st.markdown('<p class="medium-font"> Please refer to the second tab (Dictionary) for instructions. </p>', unsafe_allow_html=True)
-    st.markdown('<p class="medium-font"> Please refer to the first tab (Template) to access sample manifest template to fill in. </p>', unsafe_allow_html=True)
-    st.markdown('<p class="medium-font"> Please note all the GP2 required columns must be completed </p>', unsafe_allow_html=True)
-    st.markdown('<p class="medium-font"> Once you have filled in all the columns avavailable in your cohort, please upload the manifest on the side bar to start the QC process </p>', unsafe_allow_html=True)
-
+    
     if data_file is not None:
-        st.header("Data Check and self-QC")
-
-        # read a file
-        df = read_file(data_file)
+        jumptwice()
+        st.markdown('<p class="big-font">Clinical data QC </p>', unsafe_allow_html=True)
+        df, clin, dct = read_filev2(data_file)
         df.index = df.index +2
 
+        try:
+            clin['visit_month'] = clin['visit_month'].astype(int)
+            stopapp=False
+        except:
+            st.error(f' We could not conver visit month to integer')
+            st.error(f' Please check visit month refers to numeric month from Screening')
+            stopapp=True
+        if stopapp:
+            st.stop()
+        
+        clin['sample_id'] = clin['sample_id'].astype(str)
+        st.text('Checking data type and values')
+        for col in clin.iloc[:, 3:].columns:
+            try:
+                clin[col] = clin[col].astype(float).round(4)
+                stopapp=False
+            except:
+                st.error(f'We could not convert {col} to integer')
+                st.error('Please refer to the data dictionary and recode clinical variables as numeric')
+                stopapp=True
+            if stopapp:
+                st.stop()
+            
+            if not clin[clin[col] < 0].shape[0] == 0:
+                st.error(f' We have detected negative values on column {col}')
+                st.error(f' This is likely to be a mistake on the data. Please, go back to the sample manifest anc check')
+                st.stop()
+
+        st.text('Your clinical data passed all checkings...')
+        AgGrid(clin.head(10))
+        clinical_conf = st.checkbox('Confirm clinical data looks good?')
+        if clinical_conf:
+            st.info('Thank you')
+
+
+
+        jumptwice()
+        jumptwice()
+        st.markdown('<p class="big-font">Sample manifest QC </p>', unsafe_allow_html=True)
         df['Genotyping_site'] = choice.replace('For ', '')
         if choice=='For Fulgent':
             required_cols = required_cols + fulgent_cols
@@ -122,7 +163,7 @@ def app():
                     st.write(df[df['sample_type'].isin(not_allowed_v2)])
                     st.text(f'Allowed sample list - \n * {sample_list}')
                     st.stop()
-
+        
         # Convert sample and clinical id to strings
         df[['sample_id', 'clinical_id']] = df[['sample_id','clinical_id']].astype(str)
         sample_id_dup = df.sample_id[df.sample_id.duplicated()].unique()
@@ -136,53 +177,91 @@ def app():
             st.text(f'N of sample_id (entries):{df.shape[0]}')
             st.text(f'N of unique clinical_id : {len(df.clinical_id.unique())}')
 
-        #GENERATE GP2 IDs #
-        st.subheader('Assigning GP2 IDs... Please wait')
+        jumptwice()
+        # GENERATE GP2 IDs #
+        st.subheader('GP2 IDs assignment')
         studynames = list(df['study'].unique())
         ids_tracker = generategp2ids.master_key(studies = studynames)
         study_subsets = []
         log_new = []
-        # Let's do GP2 IDs assignment for each study name individually
+        df['GP2sampleID'] = None
+        
+        # GP2 ID ASSIGNMENT CODE BLOCK
         for study in studynames:
             st.write(f"Getting GP2IDs for {study} samples")
             df_subset = df[df.study==study].copy()
             try:
                 study_tracker = ids_tracker[study]
+                study_tracker_df = pd.DataFrame.from_dict(study_tracker,
+                                                        orient='index',
+                                                        columns = ['master_GP2sampleID','clinical_id'])\
+                                                .rename_axis('master_sample_id').reset_index()\
+                                                .astype(str)
+            
+                # Check if any sample ID exists in df_subset.
+                sample_id_unique = pd.merge(study_tracker_df, df_subset,  
+                                            left_on=['master_sample_id'], right_on=['sample_id'], how='inner')
+                if not sample_id_unique.empty:
+                    st.error('We have detected sample ids sibmitted on previous versions')
+                    st.error('Please, correct these sample IDs so that they are unique and resubmit the sample manifest.')
+                    sample_id_unique = sample_id_unique.rename(columns={"clinical_id_y": "clinical_id"})
+                    st.dataframe(
+                    sample_id_unique[['study','sample_id','clinical_id']].style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
+                    )
+                    stopapp=True
+                else:
+                    stopapp=False
             except:
                 study_tracker = None
+                stopapp = False
+            if stopapp:
+                st.stop()
 
             if bool(study_tracker):
-                #st.write("IN IDS_TRACKER")
-                df_subset['GP2sampleID'] = df_subset['sample_id'].apply(lambda x: study_tracker.get(str(x)), np.nan)
+                # WORK ON DUPLICATED IDS
+                df_subset = df_subset.reset_index()
+                data_duplicated = pd.merge(df_subset, study_tracker_df, on=['clinical_id'], how='inner')
+                df_subset = df_subset.set_index('index')
+                df_subset.index.name = None
+                
+                if data_duplicated.shape[0]>0:
+                    new_clinicaldups = True
+                    newids_clinicaldups = data_duplicated.groupby('clinical_id')\
+                                                    .apply(lambda x: generategp2ids.assign_unique_gp2clinicalids(df_subset,x))
+                    
+                    if newids_clinicaldups.shape[0]>0:
+                        newids_clinicaldups = newids_clinicaldups.reset_index(drop=True)[['study','clinical_id','sample_id','GP2sampleID']]
+                        log_new.append(newids_clinicaldups)
+                else:
+                    new_clinicaldups = False
+            
+                # GET GP2 IDs METADATA for new CLINICAL-SAMPLE ID pairs
                 df_newids = df_subset[df_subset['GP2sampleID'].isnull()].reset_index(drop = True).copy()
                 if not df_newids.empty: # Get new GP2 IDs
-                    #st.write("IN NEW IDS")
-                    new = True
+
                     df_wids = df_subset[~df_subset['GP2sampleID'].isnull()].reset_index(drop = True).copy()
                     df_wids['GP2ID'] = df_wids['GP2sampleID'].apply(lambda x: ("_").join(x.split("_")[:-1]))
                     df_wids['SampleRepNo'] = df_wids['GP2sampleID'].apply(lambda x: x.split("_")[-1])#.replace("s",""))
 
-                    uids = [str(id) for id in df_subset['sample_id'].unique()]
-                    uids = np.setdiff1d(uids, list(study_tracker.keys())) # Get the new IDs
-                    n=int(max(list(study_tracker.values())).split("_")[1])+1
+                    #uids = [str(id) for id in df_subset['sample_id'].unique()]
+                    uids = [str(id) for id in df_newids['sample_id'].unique()]
+                    n=int(max(study_tracker_df['master_GP2sampleID'].to_list()).split("_")[1])+1
 
-                    # Work on samples missing GP2 IDs
-                    df_newids = generategp2ids.getgp2ids(df_newids, n, uids, study) # Call gp2 IDs assignment function
-                    df_subset = pd.concat([df_newids, df_wids], axis = 0) # Subset with all ids present
+                    df_newids = generategp2ids.getgp2ids(df_newids, n, uids, study)
+                    df_subset = pd.concat([df_newids, df_wids], axis = 0)
                     study_subsets.append(df_subset)
-                    log_new.append(df_newids)
-
-                else: # Update df with existing GP2 IDs
-                    #st.write("IN no new ids")
-                    new = False
+                    log_new.append(df_newids[['study','clinical_id','sample_id','GP2sampleID']])
+                else:
                     df_subset['GP2ID'] = df_subset['GP2sampleID'].apply(lambda x: ("_").join(x.split("_")[:-1]))
-                    df_subset['SampleRepNo'] = df_subset['GP2sampleID'].apply(lambda x: x.split("_")[-1].replace("s",""))
+                    df_subset['SampleRepNo'] = df_subset['GP2sampleID'].apply(lambda x: x.split("_")[-1])#.replace("s",""))
                     study_subsets.append(df_subset)
-                    log_new.append(df_newids)
-
-            else: # Brand new data - Generate GP2 IDs from scratch (n = 1)
-                #st.write("IN ALL NEW IDS")
-                new = True
+            
+            # Brand new data - NO STUDY TRACKER FOR THIS COHORT
+            else: 
+                new_clinicaldups = False
+                # TODO - I NEED TO CONSIDER A CASE IN WHICH WE FIND DUPLICATES BUT THEY ARE ALL BRAND NEW, SO, NO REFERENCE
+                # WHAT I HAVE IN MIND IS TO GET THESE AND ADD THEM THE FIRST GP2IDS.
+                new_clinicaldups = False
                 df_subset['GP2sampleID'] = np.nan
                 uids = [str(id) for id in df_subset['sample_id'].unique()]
                 n=1
@@ -190,32 +269,54 @@ def app():
                 df_newids = generategp2ids.getgp2ids(df_newids, n, uids, study)
                 study_subsets.append(df_newids)
 
-            if new:
-                ids_log = df_newids.groupby('study').apply(lambda x: dict(zip(x['sample_id'],
-                                                                            x['GP2sampleID']))).to_dict()
-                generategp2ids.update_masterids(ids_log, study_tracker)
+            # CODE TO UPDATE THE MASTER JSON FILE
+            if (new_clinicaldups) and (newids_clinicaldups.shape[0]>0):
+                tmp = pd.concat([df_newids[['study','clinical_id','sample_id','GP2sampleID']], newids_clinicaldups])
+                tmp['master_value'] = list(zip(tmp['GP2sampleID'],
+                                                tmp['clinical_id']))
+                ids_log = tmp.groupby('study').apply(lambda x: dict(zip(x['sample_id'],
+                                                                        x['master_value']))).to_dict()
+            else:
+                df_update_master = df_newids.copy()
+                df_update_master['master_value'] = list(zip(df_update_master['GP2sampleID'],
+                                                        df_update_master['clinical_id']))
+                ids_log = df_update_master.groupby('study').apply(lambda x: dict(zip(x['sample_id'],
+                                                                                x['master_value']))).to_dict()
 
+            #generategp2ids.update_masterids(ids_log, study_tracker)
+        
+
+        # END OF GP2 IDS ASSIGNMENT. LET'S RESUME df.
         df = pd.concat(study_subsets, axis = 0)
         df = df[list(df)[-3:] + list(df)[:-3]]
         st.write("GPS IDs assignment... OK")
-        jumptwice()
         if len(log_new) > 0:
-            allnew = pd.concat(log_new, axis = 0)
-            st.write("Thanks for uploading a new version of the manuscript")
-            st.write(f'We have detected a total of new {allnew.shape[0]} samples')
-            st.write("We have assigned new GP2IDs to those...")
-
-        st.dataframe(
-            df.iloc[1:10, :].style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
-        )
-
-        # diagnosis --> Phenotype
+            allnew = pd.concat(log_new, axis = 0).reset_index(drop=True)
+            st.write("Thanks for uploading a new version of the sample manifest")
+            st.write(f'We have detected a total of {allnew.shape[0]} new samples')
+            st.write("We have assigned new GP2IDs to those. Showing them below...")
+            st.dataframe(
+            allnew.style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
+            #allnew.style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
+            )
+        else:
+            df_builder = GridOptionsBuilder.from_dataframe(df)
+            df_builder.configure_grid_options(alwaysShowHorizontalScroll = True,
+                                                enableRangeSelection=True, 
+                                                pagination=True, 
+                                                paginationPageSize=10000,
+                                                domLayout='normal')
+            godf = df_builder.build()
+            AgGrid(df,gridOptions=godf, theme='streamlit', height=300)
+        
+        
         jumptwice()
+        # diagnosis --> Phenotype
         st.subheader('Create "Phenotype"')
         st.text('Show study arm versus diagnosis')
         # Add xtab for diagnosis vs study arm
         xtab = df.pivot_table(index='study_arm', columns='diagnosis', margins=True,
-                              values='sample_id', aggfunc='count', fill_value=0)
+                            values='sample_id', aggfunc='count', fill_value=0)
         st.write(xtab)
 
         jumptwice()
@@ -230,12 +331,11 @@ def app():
             with x:
                 mydiag = diag[i]
                 phenotypes[mydiag]=x.selectbox(f"[{mydiag}]: For QC, please pick the closest Phenotype",["PD", "Control", "Prodromal", \
-                                                                                                         "Other", "Not Reported", "MSA", \
-                                                                                                         "PSP", "DLB", "CBS", "AD", "FTD", "VSC"],
-                                                                                                         key=i)
+                                                                                                        "Other", "Not Reported", "MSA", \
+                                                                                                        "PSP", "DLB", "CBS", "AD", "FTD", "VSC"],
+                                                                                                        key=i)
+        
         df['Phenotype'] = df.diagnosis.map(phenotypes)
-
-
         # cross-tabulation of diagnosis and Phenotype
         st.text('=== Phenotype x diagnosis===')
         xtab = df.pivot_table(index='Phenotype', columns='diagnosis', margins=True,
@@ -449,28 +549,40 @@ def app():
                 else:
                     st.text(f'{v} - histogram ({nmiss} entries missing)')
                     fig, ax_hist = plt.subplots(
-                        figsize = (11,6)
+                        figsize = (6,4)
                     )
                     ax_hist.grid(True)
                     sns.histplot(data = df, x = v,
                                     kde=True, color = "green",
                                     ax = ax_hist)
                     fig.set_tight_layout(True)
-                    st.pyplot(fig)
+                    st.write(fig)
+                    #st.pyplot(fig)
+
                 jumptwice()
 
         if st.button("Finished?"):
-            if not (ph_conf & sex_conf & race_conf & fh_conf & rg_conf):
+            if not (clinical_conf & ph_conf & sex_conf & race_conf & fh_conf & rg_conf):
                 st.error('Did you forget to confirm any of the steps above?')
                 st.error("Please, tick all the boxes on the previous steps if the QC to meet GP2 standard format was successful")
             else:
+                # Update json file with master IDs
+                generategp2ids.update_masterids(ids_log, study_tracker)
+
                 df = df.reset_index(drop=True)
-                st.session_state['dfqc'] = df
+                df_final = clin.merge(df, how = 'inner', on =  ['sample_id', 'study'])
+                # Add data to session state
+                st.session_state['allqc'] = df_final
+                st.session_state['smqc'] = df
+                st.session_state['clinqc'] = clin
+                
+                # Generate excel sheet for download
                 st.markdown('<p class="medium-font"> CONGRATS, your sample manifest meets all the GP2 requirements. </p>', unsafe_allow_html=True )
-                qcmanifest = output_create(df, filetype=output_choice)
+                writeexcel = to_excelv2(df,clin)
+                #qcmanifest = output_create(df_final, filetype=output_choice)
                 st.download_button(label='📥 Download your QC sample manifest',
-                                   data = qcmanifest[0],
-                                   file_name = qcmanifest[1]
+                                   data = writeexcel[0],
+                                   file_name = writeexcel[1]
                                    )
         jumptwice()
         st.markdown("<a href='#link_to_top'>Link to top</a>", unsafe_allow_html=True)
