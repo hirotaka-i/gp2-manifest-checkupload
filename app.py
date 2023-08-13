@@ -11,6 +11,8 @@ if 'smqc' not in st.session_state:
     st.session_state['smqc'] = None
 if 'clinqc' not in st.session_state:
     st.session_state['clinqc'] = None
+if 'dct_tmplt' not in st.session_state:
+    st.session_state['dct_tmplt'] = None
 
 app = MultiApp()
 st.markdown(""" 
