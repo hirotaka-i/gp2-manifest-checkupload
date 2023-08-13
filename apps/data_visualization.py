@@ -2,7 +2,7 @@
 import streamlit as st
 import sys
 sys.path.append('utils')
-from writeread import read_file, read_filev2, output_create, read_filev2
+from writeread import read_filev2, read_filev2
 from customcss import load_css
 import pandas as pd
 import numpy as np
@@ -30,7 +30,6 @@ def app():
     load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
     st.markdown('<p class="big-font">GP2 Data Visualization Tool</p>', unsafe_allow_html=True)
     st.sidebar.title("Options")
-    st.write(st.session_state['allqc'])
 
     # Load data and do na processing
     keep = ['sample_id', 'study', 'study_arm', 'diagnosis', 'sex',
@@ -45,9 +44,19 @@ def app():
             #df_tmp = read_file(data_file)
             sm, clin, dct = read_filev2(data_file)
             df_merged = sm.merge(clin, how = 'inner', on =  ['sample_id', 'study'])
-            df_qc, cols_qc = data_naproc(df_merged[keep])
+            if not df_merged.shape[0] == 0:
+                df_qc, cols_qc = data_naproc(df_merged[keep])
+            else:
+                st.error('We could not find matching sample ids between the clinical data and sample manifest')
+                st.error('Please, revise your sample manifest. If there are matching sample ids, please contact GP2')
+                st.stop()
     else:
-        df_qc, cols_qc = data_naproc(st.session_state['allqc'][keep])
+        if not st.session_state['allqc'].shape[0] == 0:
+            df_qc, cols_qc = data_naproc(st.session_state['allqc'][keep])
+        else:
+            st.error('We could not find matching sample ids between the clinical data and sample manifest')
+            st.error('Please, revise your sample manifest. If there are matching sample ids, please contact GP2')
+            st.stop()
 
     if df_qc is not None:
         # Load data dictionary and map to data types
