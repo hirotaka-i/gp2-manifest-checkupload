@@ -1,5 +1,6 @@
 try:
     import streamlit as st
+    from streamlit.components.v1 import html
     import os
     import sys
     import pandas as pd
@@ -23,7 +24,7 @@ try:
 except Exception as e:
     print("Some modules are not installed {}".format(e))
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
+#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
 #os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
 
 def jumptwice():
@@ -32,18 +33,19 @@ def jumptwice():
 
 def app():
     #load_css("/app/apps/css/css.css")
-    load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
+    #load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
     
     st.markdown("""<div id='link_to_top'></div>""", unsafe_allow_html=True)
     st.markdown('<p class="big-font">GP2 sample manifest self-QC</p>', unsafe_allow_html=True)
-    st.markdown('<p class="medium-font"> This is a web app to self-check the sample manifest. </p>', unsafe_allow_html=True)
-    st.markdown('<p class="medium-font"> Download the template from the link below. Once you open the link, go to "File"> "Download" > "xlsx" or "csv" format. </p>', unsafe_allow_html=True)
-    st.markdown('[Access the sample manifest dictionary and a template](https://docs.google.com/spreadsheets/d/1SCCJzZ342z2bEki2y9QZOzEEXUb3COa1OhXEvOfaTiM/edit#gid=227954521)', unsafe_allow_html=True)
-    st.markdown('<p class="medium-font"> Please refer to the second tab (Dictionary) for instructions. </p>', unsafe_allow_html=True)
-    st.markdown('<p class="medium-font"> Please refer to the first tab (Template) to access sample manifest template to fill in. </p>', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> This is a app tab to self-check the sample manifest and clinical data. </p>', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> Download the template from the link below. Once you open the link, go to "File"> "Download" > "xlsx" format </p>', unsafe_allow_html=True)
+    st.markdown('[Access the data dictionary and templates](https://docs.google.com/spreadsheets/d/19L5EgSsvax4qBWa6iPUCSD3FUm7T9Ux3V8Ptdt6Dtuk/edit#gid=520666050)', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> Please refer to the third tab (Dictionary) for instructions. </p>', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> Please refer to the first tab (sm) to access sample manifest template to fill in. </p>', unsafe_allow_html=True)
+    st.markdown('<p class="medium-font"> Please refer to the second tab (clinial) to access clinical data template to fill in. </p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Please note all the GP2 required columns must be completed </p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Once you have filled in all the columns avavailable in your cohort, please upload the manifest on the side bar to start the QC process </p>', unsafe_allow_html=True)
-
+    st.markdown('<p class="medium-font"> Once the QC process completes, please move to the Upload tab of the app to store your sample manifest and clinical data </p>', unsafe_allow_html=True)
 
     data_file = st.sidebar.file_uploader("Upload Your Sample manifest (CSV/XLSX)", type=['xlsx'])
     menu = ["For Fulgent", "For NIH", "For LGC", "For UCL", "For DZNE"]
