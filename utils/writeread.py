@@ -15,7 +15,7 @@ def upload_data(bucket_name, data, destination):
     blob.upload_from_string(data)
     return "File successfully uploaded to GP2 storage system"
 
-def to_excelv2(df,clin):
+def to_excelv2(df,clin, dct):
     """It returns an excel object sheet with the QC sample manifest
     and clinical data written in separate
     """
@@ -27,8 +27,9 @@ def to_excelv2(df,clin):
     
     output = BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    df.to_excel(writer, index=False, sheet_name='demographics')
+    df.to_excel(writer, index=False, sheet_name='sm')
     clin.to_excel(writer, index=False, sheet_name='clinical')
+    dct.to_excel(writer, index=False, sheet_name='Dictionary')
     writer.save()
     processed_data = output.getvalue()
     return processed_data, filename
