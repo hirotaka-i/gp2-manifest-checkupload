@@ -27,6 +27,7 @@ def data_naproc(df):
     return(df[cleancols], cleancols)
 
 def app():
+    #load_css("/app/apps/css/css.css")
     load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
     st.markdown('<p class="big-font">GP2 Data Visualization Tool</p>', unsafe_allow_html=True)
     st.sidebar.title("Options")
@@ -42,10 +43,12 @@ def app():
         data_file = st.sidebar.file_uploader("Upload Sample Manifest (CSV/XLSX)", type=['csv', 'xlsx'])
         if data_file is not None:
             #df_tmp = read_file(data_file)
-            sm, clin, dct = read_filev2(data_file)
+            sm, clin, data_dict = read_filev2(data_file)
             df_merged = sm.merge(clin, how = 'inner', on =  ['sample_id', 'study'])
             if not df_merged.shape[0] == 0:
                 df_qc, cols_qc = data_naproc(df_merged[keep])
+                mapper = {key:val for key,val in zip(data_dict['Item'], data_dict['ItemType']) if key in cols_qc}
+                df_qc = df_qc.astype(mapper)
             else:
                 st.error('We could not find matching sample ids between the clinical data and sample manifest')
                 st.error('Please, revise your sample manifest. If there are matching sample ids, please contact GP2')
@@ -53,6 +56,9 @@ def app():
     else:
         if not st.session_state['allqc'].shape[0] == 0:
             df_qc, cols_qc = data_naproc(st.session_state['allqc'][keep])
+            data_dict = st.session_state['dct_tmplt']
+            mapper = {key:val for key,val in zip(data_dict['Item'], data_dict['ItemType']) if key in cols_qc}
+            df_qc = df_qc.astype(mapper)
         else:
             st.error('We could not find matching sample ids between the clinical data and sample manifest')
             st.error('Please, revise your sample manifest. If there are matching sample ids, please contact GP2')
@@ -60,9 +66,9 @@ def app():
 
     if df_qc is not None:
         # Load data dictionary and map to data types
-        data_dict = pd.read_table("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/data/clincal_test/sm_dict.txt")
-        mapper = {key:val for key,val in zip(data_dict['Item'], data_dict['ItemType']) if key in cols_qc}
-        df_qc = df_qc.astype(mapper)
+        #data_dict = dct#pd.read_table("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/data/clincal_test/sm_dict.txt")
+        #mapper = {key:val for key,val in zip(data_dict['Item'], data_dict['ItemType']) if key in cols_qc}
+        #df_qc = df_qc.astype(mapper)
         #st.write(df_qc.info())
         #st.write(mapper)
         #data_dict_filt = {k:v for k,v in data_dict.items() if k in cols_qc}    

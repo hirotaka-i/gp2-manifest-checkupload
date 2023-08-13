@@ -24,7 +24,7 @@ try:
 except Exception as e:
     print("Some modules are not installed {}".format(e))
 
-#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
 #os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
 
 def jumptwice():
@@ -33,7 +33,7 @@ def jumptwice():
 
 def app():
     #load_css("/app/apps/css/css.css")
-    #load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
+    load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
     
     st.markdown("""<div id='link_to_top'></div>""", unsafe_allow_html=True)
     st.markdown('<p class="big-font">GP2 sample manifest self-QC</p>', unsafe_allow_html=True)
@@ -577,10 +577,11 @@ def app():
                 st.session_state['allqc'] = df_final
                 st.session_state['smqc'] = df
                 st.session_state['clinqc'] = clin
+                st.session_state['dct_tmplt'] = dct
                 
                 # Generate excel sheet for download
                 st.markdown('<p class="medium-font"> CONGRATS, your sample manifest meets all the GP2 requirements. </p>', unsafe_allow_html=True )
-                writeexcel = to_excelv2(df,clin)
+                writeexcel = to_excelv2(df, clin, dct)
                 #qcmanifest = output_create(df_final, filetype=output_choice)
                 st.download_button(label='📥 Download your QC sample manifest',
                                    data = writeexcel[0],

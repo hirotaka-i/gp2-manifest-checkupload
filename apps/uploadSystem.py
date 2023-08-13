@@ -18,7 +18,6 @@ except Exception as e:
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
 
 def app():
-
     load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
     #load_css("/app/apps/css/css.css")
     st.markdown('<p class="big-font"> GP2 Sample Uploader System</p>', unsafe_allow_html=True)
@@ -70,6 +69,8 @@ def app():
         if st.button("Upload to GP2 Google Cloud Bucket"):
             try:
                 df[['sample_id', 'clinical_id', 'SampleRepNo']] = df[['sample_id','clinical_id', 'SampleRepNo']].astype(str)
+                st.write(comp.shape)
+                comp = df.compare(st.session_state["smqc"])
                 checkdf = True if comp.shape == (0, 0) else False             
             except:
                 checkdf = True if df.shape[1] == 33 else False
