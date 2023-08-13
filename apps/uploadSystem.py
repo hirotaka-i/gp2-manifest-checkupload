@@ -8,7 +8,7 @@ try:
     import sys
     sys.path.append('utils')
     from customcss import load_css
-    from writeread import upload_data, read_file, read_filev2
+    from writeread import upload_data, read_filev2
     from st_aggrid import AgGrid, GridOptionsBuilder
 except Exception as e:
     print("Some modules are not installed {}".format(e))
@@ -18,9 +18,6 @@ except Exception as e:
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
 
 def app():
-    st.write(st.session_state["smqc"])
-    st.write(st.session_state["clinqc"])
-    st.write(st.session_state['allqc'])
 
     load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
     #load_css("/app/apps/css/css.css")
@@ -30,6 +27,7 @@ def app():
     study_name = st.sidebar.text_input(
         "Introduce the study name"
     )
+    study_name = study_name.strip()
     # Add files browser
     # source_file = st.file_uploader(
     #     "Upload the QC Sample Manifest",
@@ -43,12 +41,6 @@ def app():
         file_details = {"FileName":source_file.name,
                         "FileType":source_file.type,"FileSize":source_file.size}
         file_name, file_extension = os.path.splitext(file_details["FileName"])
-        # if file_extension == ".csv":
-        #     df = pd.read_csv(source_file)
-        # elif file_extension == ".tsv":
-            # df = pd.read_csv(source_file, sep = '\t')   
-        #elif file_extension == ".xlsx":
-        #df = pd.read_excel(source_file, sheet_name=0)
         df, clin, dct = read_filev2(source_file)
         #df[['sample_id', 'clinical_id', 'SampleRepNo']] = df[['sample_id','clinical_id', 'SampleRepNo']].astype(str)
         
