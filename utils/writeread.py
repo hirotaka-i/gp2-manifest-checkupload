@@ -45,8 +45,8 @@ def read_filev2(data_file):
             dfdict = None
     else:
         st.error("Please make sure you upload the temaplate excel file")
+        st.stop()
     return (dfdemo, dfclin, dfdict)
-
 
 
 # def to_excel(df):
