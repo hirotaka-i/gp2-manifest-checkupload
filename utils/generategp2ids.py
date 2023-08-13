@@ -12,7 +12,8 @@ def update_masterids(ids_log, ids_dict):
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
     #blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230718.json')
-    blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230810.json')
+    #blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230810.json')
+    blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
     
     with blob.open("r") as fp:
         masterids = json.load(fp)
@@ -37,7 +38,8 @@ def master_key(studies):
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
     #blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230718.json')
-    blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230810.json')
+    #blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230810.json')
+    blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
     
     ids_tracker = {}
     with blob.open("r") as f:
