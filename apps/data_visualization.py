@@ -1,30 +1,19 @@
 # Loads libraries required for the app
 import streamlit as st
 import sys
-sys.path.append('utils')
-from writeread import read_filev2, read_filev2
-from customcss import load_css
 import pandas as pd
 import numpy as np
 import altair as alt
-# import plotly.graph_objects as go
 import plotly.express as px
-# import re
-# import glob
 import tableone as tab1
-# from lifelines import KaplanMeierFitter
-# import matplotlib.pyplot as plt
-pd.set_option('display.max_rows', 1000)
 
-def data_naproc(df):
-    navals = df.isna().sum().to_dict()
-    cleancols = []
-    for k, v in navals.items():
-        if (v / df.shape[0] > 0.6):
-            continue
-        cleancols.append(k)
-    df = df.fillna(999)
-    return(df[cleancols], cleancols)
+sys.path.append('utils')
+from writeread import read_filev2, read_file
+from customcss import load_css
+from qcutils import data_naproc
+
+
+pd.set_option('display.max_rows', 1000)
 
 def app():
     #load_css("/app/apps/css/css.css")
@@ -38,63 +27,75 @@ def app():
             'family_history', 'visit_month', 'mds_updrs_part_iii_summary_score', 'moca_total_score', 
             'hoehn_and_yahr_stage', 'mmse_total_score']
 
+    dict_mapper = pd.read_excel('/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/data/dict_mapper.xlsx')
     df_qc = None
-    if st.session_state['allqc'] is None:
-        data_file = st.sidebar.file_uploader("Upload Sample Manifest (CSV/XLSX)", type=['csv', 'xlsx'])
-        if data_file is not None:
-            #df_tmp = read_file(data_file)
-            sm, clin, data_dict = read_filev2(data_file)
-            df_merged = sm.merge(clin, how = 'inner', on =  ['sample_id', 'study'])
-            if not df_merged.shape[0] == 0:
-                df_qc, cols_qc = data_naproc(df_merged[keep])
-                mapper = {key:val for key,val in zip(data_dict['Item'], data_dict['ItemType']) if key in cols_qc}
-                df_qc = df_qc.astype(mapper)
-            else:
-                st.error('We could not find matching sample ids between the clinical data and sample manifest')
-                st.error('Please, revise your sample manifest. If there are matching sample ids, please contact GP2')
-                st.stop()
-    else:
-        if not st.session_state['allqc'].shape[0] == 0:
-            df_qc, cols_qc = data_naproc(st.session_state['allqc'][keep])
-            data_dict = st.session_state['dct_tmplt']
-            mapper = {key:val for key,val in zip(data_dict['Item'], data_dict['ItemType']) if key in cols_qc}
+
+    if not [x for x in (st.session_state['smqc'], st.session_state['clinqc']) if x is None]:
+        df_merged = st.session_state['clinqc'].merge(st.session_state['smqc'], how = 'inner', on =  ['sample_id', 'study'])
+        if not df_merged.shape[0] == 0:
+            df_qc, cols_qc = data_naproc(df_merged[keep])
+            mapper = {key:val for key,val in zip(dict_mapper['Item'], dict_mapper['ItemType']) if key in cols_qc}
             df_qc = df_qc.astype(mapper)
         else:
             st.error('We could not find matching sample ids between the clinical data and sample manifest')
             st.error('Please, revise your sample manifest. If there are matching sample ids, please contact GP2')
             st.stop()
+    else:
+        sm_file = st.sidebar.file_uploader("Upload Sample Manifest (CSV/XLSX)", type=['csv', 'xlsx'])
+        clinical_file = st.sidebar.file_uploader("Upload Clinical data (CSV/XLSX)", type=['csv', 'xlsx'])
+        if (sm_file is not None) and (clinical_file is not None):
+            sm = read_file(sm_file)
+            clin = read_file(clinical_file)
+            
+            # Check the sm and clin have the right formats
+            if len(list(clin.columns)) != 7:
+                st.error(' This does not seem like the QC clinical data')
+                st.error('We have detected an unexpected number of columns')
+                st.error(' Please QC the clinical data and come back')
+                st.stop()            
+            if len(list(sm.columns)) != 33:
+                st.error(' This does not seem like the QC clinical data')
+                st.error('We have detected an unexpected number of columns')
+                st.error(' Please QC the clinical data and come back')
+                st.stop()
+
+            sm[['sample_id']] = sm[['sample_id']].astype(str)
+            clin[['sample_id']] = clin[['sample_id']].astype(str)
+
+            try:
+                df_merged = sm.merge(clin , how = 'inner', on =  ['sample_id', 'study'])
+            except:
+                st.error('We were unable to match the clinical data and the sample manifest')
+                st.error('Please make sure you upload the correct files')
+                st.stop()
+
+            if not df_merged.shape[0] == 0:
+                try:
+                    df_merged_filt = df_merged[keep]
+                except:
+                    diffcols = np.setdiff1d(keep, list(df_merged.columns))
+                    st.error(' Please make sure you have qced both the sample manifest and clinical data before uploading the date')
+                    st.error('Refer to the QC tabs and then come back to visualise your QC ed data')
+                    st.error(f"Affected columns {diffcols}")
+                    st.error('Contact the GP2 team if you need assistance')
+                    st.error('CIAO')
+                    st.stop()
+            
+                df_qc, cols_qc = data_naproc(df_merged_filt)
+                mapper = {key:val for key,val in zip(dict_mapper['Item'], dict_mapper['ItemType']) if key in cols_qc}
+                df_qc = df_qc.astype(mapper)
+            else:
+                st.error('We could not find matching sample ids between the clinical data and sample manifest')
+                st.error('Please, revise your sample manifest. If there are matching sample ids, please contact GP2')
+                st.stop()
 
     if df_qc is not None:
-        # Load data dictionary and map to data types
-        #data_dict = dct#pd.read_table("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/data/clincal_test/sm_dict.txt")
-        #mapper = {key:val for key,val in zip(data_dict['Item'], data_dict['ItemType']) if key in cols_qc}
-        #df_qc = df_qc.astype(mapper)
-        #st.write(df_qc.info())
-        #st.write(mapper)
-        #data_dict_filt = {k:v for k,v in data_dict.items() if k in cols_qc}    
-        # def my_filtering_function(pair, cols_qc=cols_qc):
-        #     key, value = pair
-        #     if key in cols_qc:
-        #         return True  # filter pair out of the dictionary
-        #     else:
-        #         return False  # keep pair in the filtered dictionar
-        # #data_dict_filt = dict(filter(my_filtering_function, data_dict.items()))
-        # data_dict_filt = {k:v for k,v in data_dict.items() if k in cols_qc} 
-        
-        # Derive yearsB and yearsDx if possible.
-        #bl_val = "yearsB" if bl == "Study Baseline" else "yearsDx"
         if ('age_at_diagnosis' in df_qc.columns) and ('age' in df_qc.columns):
             df_qc["Dx_Diagnosis"] = df_qc["age"] - df_qc["age_at_diagnosis"]
             mapper["Dx_Diagnosis"] = 'int64'
-        # if ('age_at_diagnosis' in df.columns) and ('age_at_last_follow_up' in df.columns):
-        #     df_qc["years_Last"] = df_qc["age"] - df_qc["age_at_last_follow_up"]
-        #bl_val = "yearsB" if bl == "Study Baseline" else "yearsDx"
         if ('age_of_onset' in df_qc.columns) and ('age' in df_qc.columns):
             df_qc["Dx_Onset"] = df_qc["age"] - df_qc["age_of_onset"]
             mapper["Dx_Onset"] = 'int64'
-        # if ('age_at_diagnosis' in df.columns) and ('age_at_last_follow_up' in df.columns):
-        #     df_qc["yearsDxL"] = df_qc["age"] - df_qc["age_at_last_follow_up"]
-        #st.write(df_qc.head())
 
         # Group all variables present on categoric and numeric
         grouped_dict = {}
@@ -105,25 +106,18 @@ def app():
                 grouped_dict[value].append(key)
         nnml = grouped_dict.get('int64')
         cats = grouped_dict.get('str')
-        #st.write(mapper)
-        #st.write(nnml)
-        #st.write(cats)
 
-        # Display plot options depending on the QCed data
-        #long = True if len(df_qc.visit_name.unique()) > 1 else False
-        # if long:
-        #     viz = st.sidebar.selectbox("Choose a Visualization", ["Tables", "Scatter Plot","Bar Graph","Baseline Histogram"])
-        if ('Dx_Diagnosis' in df_qc.columns) or ('Dx_Onset' in df_qc.columns):
+        unique_months = list(df_qc.visit_month.unique())
+        if 0 not in unique_months:
             viz = st.sidebar.selectbox("Choose a Visualization", ["Tables", "Scatter Plot",
-                                                                "Bar Graph","Baseline Histogram",
-                                                                "Line Plot"])
+                                                                  "Bar Graph",
+                                                                  "Line Plot"])
         else:
             viz = st.sidebar.selectbox("Choose a Visualization", ["Tables", "Scatter Plot",
-                                                                "Bar Graph","Baseline Histogram",])
-        
-        
-        df_plot = df_qc.copy()
+                                                                  "Bar Graph","Baseline Histogram",
+                                                                  "Line Plot"])
 
+        df_plot = df_qc.copy()
         ###----------------------------------------------------------------------------------------------###
         ###The following code is responsible for producing the demographic summarization table
         ###----------------------------------------------------------------------------------------------'''
