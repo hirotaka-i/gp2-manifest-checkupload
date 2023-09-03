@@ -53,9 +53,6 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About the app
-![IMG](https://drive.google.com/file/d/1QuqhPFw0YurhFm7O30EthhvXrF8EfX9L/view?usp=drive_link)
-<!--  [![Product Name Screen Shot][product-screenshot]](product-screenshot)  -->
-https://drive.google.com/file/d/1QuqhPFw0YurhFm7O30EthhvXrF8EfX9L/view?usp=drive_link
 
 Welcome to the GP2 Cohort Integration Working Group app. This is an application intended to make easier the burden of harmonizing the data to GP2 standards. We are currently helpong to harmonise both sample manifest and clinical data through the app. Then, you can upload the data to GP2 managed storage systems and finally visualise the data within the app.
 
