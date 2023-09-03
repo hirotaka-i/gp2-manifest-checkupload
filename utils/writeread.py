@@ -34,6 +34,36 @@ def to_excelv2(df,clin, dct):
     processed_data = output.getvalue()
     return processed_data, filename
 
+def to_excel(df, datatype = 'sm'):
+    """It returns an excel object sheet with the QC sample manifest
+    and clinical data written in separate
+    """
+    today = dt.datetime.today()
+    version = f'{today.year}{today.month}{today.day}'
+    study_code = df.study.unique()[0]
+    ext = "xlsx"
+    if datatype == 'sm':
+        filename = "{s}_sample_manifest_selfQC_{v}.{e}".format(s=study_code, v = version, e = ext)
+    else:
+        filename = "{s}_clinial_data_selfQC_{v}.{e}".format(s=study_code, v = version, e = ext)
+    
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='sample_manifest')
+    writer.save()
+    processed_data = output.getvalue()
+    return processed_data, filename
+
+
+
+
+def read_file(data_file):
+    if data_file.type == "text/csv":
+        df = pd.read_csv(data_file)
+    elif data_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+        df = pd.read_excel(data_file, sheet_name=0)
+    return (df)
+
 def read_filev2(data_file):
     #if data_file.type == "text/csv":
         #dfdemo = pd.read_csv(data_file)
