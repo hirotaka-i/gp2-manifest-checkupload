@@ -189,11 +189,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 Find me on LinkedIn - [![LinkedIn][linkedin-shield]][linkedin-url]
 
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/alejandro-martinez-ba484818a
-
-
-Also email me on - [@alejandro](https://twitter.com/your_username)
+Also email me on alejandro.mc.carrasco@gmail.com
 
 Project Link: [https://gp2.org/](https://gp2.org/)
 
