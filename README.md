@@ -74,13 +74,15 @@ The intended workflow is as follow:
 
 Here I summarise the main software we have used to build the app
 
-![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) 
 
-![Streamlit](https://user-images.githubusercontent.com/7164864/217935870-c0bc60a3-6fc0-4047-b011-7b4c59488c91.png)
+* [![Python][py-shield]][python-url]
 
-![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+* [![Streamlit][st-shield]][st-url]
 
-![Google Cloud](https://img.shields.io/badge/GoogleCloud-%234285F4.svg?style=for-the-badge&logo=google-cloud&logoColor=white)
+* [![Docker][do-shield]][do-url]
+
+* [![GCP][gcp-shield]][gcp-url]
+
 
 
 
@@ -185,7 +187,13 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Alejadro - [![LinkedIn][linkedin-shield]][linkedin-url]
+Find me on LinkedIn - [![LinkedIn][linkedin-shield]][linkedin-url]
+
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://linkedin.com/in/alejandro-martinez-ba484818a
+
+
+Also email me on - [@alejandro](https://twitter.com/your_username)
 
 Project Link: [https://gp2.org/](https://gp2.org/)
 
@@ -206,8 +214,13 @@ This would not be possible without GP2 support/funding and the help of the Data 
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[product-screenshot]: https://drive.google.com/file/d/1QuqhPFw0YurhFm7O30EthhvXrF8EfX9L/view?usp=drive_link
+[do-shield]: https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white
+[do-url]: https://www.docker.com/
+[st-shield]: https://user-images.githubusercontent.com/7164864/217935870-c0bc60a3-6fc0-4047-b011-7b4c59488c91.png
 [st-url]: https://streamlit.io/
-[docker-url]: https://www.docker.com/
-[gcp-url]: (https://img.shields.io/badge/GoogleCloud-%234285F4.svg?style=for-the-badge&logo=google-cloud&logoColor=white)
+[py-shield]: https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54
+[python-url]: https://www.python.org/
+[gcp-url]: https://cloud.google.com/?hl=en
+[gcp-shield]:  https://img.shields.io/badge/GoogleCloud-%234285F4.svg?style=for-the-badge&logo=google-cloud&logoColor=white
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/alejandro-martinez-ba484818a
