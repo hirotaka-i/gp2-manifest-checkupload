@@ -53,8 +53,9 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About the app
-
-[![Product Name Screen Shot][product-screenshot]](product-screenshot)
+![IMG](https://drive.google.com/file/d/1QuqhPFw0YurhFm7O30EthhvXrF8EfX9L/view?usp=drive_link)
+<!--  [![Product Name Screen Shot][product-screenshot]](product-screenshot)  -->
+https://drive.google.com/file/d/1QuqhPFw0YurhFm7O30EthhvXrF8EfX9L/view?usp=drive_link
 
 Welcome to the GP2 Cohort Integration Working Group app. This is an application intended to make easier the burden of harmonizing the data to GP2 standards. We are currently helpong to harmonise both sample manifest and clinical data through the app. Then, you can upload the data to GP2 managed storage systems and finally visualise the data within the app.
 
@@ -76,9 +77,14 @@ The intended workflow is as follow:
 
 Here I summarise the main software we have used to build the app
 
-* [![Streamlit][Streamlit.io][st-url]
-* [![Docker][Docker.com][docker-url]
-* [![Google_Cloud][Google Cloud][google-url]
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) 
+
+![Streamlit](https://user-images.githubusercontent.com/7164864/217935870-c0bc60a3-6fc0-4047-b011-7b4c59488c91.png)
+
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+
+![Google Cloud](https://img.shields.io/badge/GoogleCloud-%234285F4.svg?style=for-the-badge&logo=google-cloud&logoColor=white)
+
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -182,7 +188,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Alejandro - [@alejandro-martinez](linkedin.com/in/alejandro-martinez-ba484818a)
+Alejadro - [![LinkedIn][linkedin-shield]][linkedin-url]
 
 Project Link: [https://gp2.org/](https://gp2.org/)
 
@@ -206,4 +212,5 @@ This would not be possible without GP2 support/funding and the help of the Data 
 [product-screenshot]: https://drive.google.com/file/d/1QuqhPFw0YurhFm7O30EthhvXrF8EfX9L/view?usp=drive_link
 [st-url]: https://streamlit.io/
 [docker-url]: https://www.docker.com/
-[google-url]: https://cloud.google.com/?hl=en
+[gcp-url]: (https://img.shields.io/badge/GoogleCloud-%234285F4.svg?style=for-the-badge&logo=google-cloud&logoColor=white)
+[linkedin-url]: https://linkedin.com/in/alejandro-martinez-ba484818a
