@@ -84,6 +84,8 @@ def app():
         jumptwice()
         df = read_file(data_file)
         df.index = df.index +2
+        # Convert sample and clinical id to strings
+        df[['sample_id', 'clinical_id']] = df[['sample_id','clinical_id']].astype(str)
         jumptwice()
 
         st.markdown('<p class="big-font">Sample manifest QC </p>', unsafe_allow_html=True)
@@ -103,8 +105,8 @@ def app():
         # required columns checks
         if df_non_miss_check.isna().sum().sum()>0:
             st.error('There are some missing entries in the required columns. Please fill the missing cells ')
-            st.text('First ~30 columns with missing data in any required fields')
-            st.write(df_non_miss_check[df_non_miss_check.isna().sum(1)>0].head(20))
+            st.text('First 30 entries with missing data in any required fields')
+            st.write(df_non_miss_check[df_non_miss_check.isna().sum(1)>0].head(30))
             st.stop()
         else:
             st.text('Check missing data in the required fields --> OK')
@@ -136,8 +138,7 @@ def app():
                     st.text(f'Allowed sample list - \n * {sample_list}')
                     st.stop()
 
-        # Convert sample and clinical id to strings
-        df[['sample_id', 'clinical_id']] = df[['sample_id','clinical_id']].astype(str)
+
         sample_id_dup = df.sample_id[df.sample_id.duplicated()].unique()
         # sample dup check
         if len(sample_id_dup)>0:
