@@ -7,43 +7,25 @@ try:
     import numpy as np
     import matplotlib.pyplot as plt
     import seaborn as sns
-    from st_aggrid import AgGrid, GridOptionsBuilder
 
     sys.path.append('utils')
     import generategp2ids
     from customcss import load_css
-    from writeread import read_filev2, to_excelv2, read_file, to_excel
-
-    #from io import BytesIO
-    #import xlsxwriter
-    #from google.cloud import storage
-    #import base64
-    #import datetime as dt
-    #import ijson
-    #import json
+    from writeread import read_file, to_excel, get_studycode, email_ellie
+    from qcutils import detect_multiple_clindups, sample_type_fix
+    from plotting import aggridPlotter
 except Exception as e:
     print("Some modules are not installed {}".format(e))
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
-#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
-
+#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
 def jumptwice():
     st.write("##")
     st.write("##")
 
-def aggridPlotter(df):
-    df_builder = GridOptionsBuilder.from_dataframe(df)
-    df_builder.configure_grid_options(alwaysShowHorizontalScroll = True,
-                                        enableRangeSelection=True,
-                                        pagination=True,
-                                        paginationPageSize=10000,
-                                        domLayout='normal')
-    godf = df_builder.build()
-    AgGrid(df,gridOptions=godf, theme='streamlit', height=300)
-
 def app():
-    #load_css("/app/apps/css/css.css")
-    load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
+    load_css("/app/apps/css/css.css")
+    #load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
 
     st.markdown("""<div id='link_to_top'></div>""", unsafe_allow_html=True)
     st.markdown('<p class="big-font">GP2 sample manifest self-QC</p>', unsafe_allow_html=True)
@@ -58,6 +40,7 @@ def app():
 
     data_file = st.sidebar.file_uploader("Upload Your Sample manifest (CSV/XLSX)", type=['xlsx', 'csv'])
     menu = ["For Fulgent", "For NIH", "For LGC", "For UCL", "For DZNE"]
+    studycode = get_studycode()
     choice = st.sidebar.selectbox("Genotyping site",menu)
 
     ph_conf=''
@@ -82,27 +65,41 @@ def app():
 
     if data_file is not None:
         jumptwice()
+        st.markdown('<p class="big-font">Sample manifest QC </p>', unsafe_allow_html=True)
         df = read_file(data_file)
         df.index = df.index +2
-        # Convert sample and clinical id to strings
-        df[['sample_id', 'clinical_id']] = df[['sample_id','clinical_id']].astype(str)
+        original_order = df.sample_id.to_list()
         jumptwice()
-
-        st.markdown('<p class="big-font">Sample manifest QC </p>', unsafe_allow_html=True)
-        df['Genotyping_site'] = choice.replace('For ', '')
-        if choice=='For Fulgent':
-            required_cols = required_cols + fulgent_cols
-
         # missing col check
+        # missing_cols = np.setdiff1d(cols, df.columns)
+        # if len(missing_cols)>0:
+        #     st.error(f'{missing_cols} are missing. Please use the template sheet')
+        #     st.stop()
+        # else:
+        #     st.text('Check column names--> OK')
+        #     df_non_miss_check = df[required_cols].copy()
+        #heck we do noe have more cols than the ones needed
+        
+        # Perform the QC checks once
+        #if 'doqc' not in st.session_state:
+            
         missing_cols = np.setdiff1d(cols, df.columns)
         if len(missing_cols)>0:
             st.error(f'{missing_cols} are missing. Please use the template sheet')
             st.stop()
+        elif df.shape[1] != len(cols):
+            st.error('We have detected more unexpected columns in the input sample manifest')
+            st.error('Pleas sure you are using the template and only providing the columns we as in the template. Thank you')
+            st.error('Please, try and QC again once this has been sorted')
+            not_required_cols = np.setdiff1d(df.columns, cols)
+            st.error(f'{not_required_cols} are missing. Please use the template sheet')
+            st.stop()
         else:
-            st.text('Check column names--> OK')
+            st.text('sample manifest columns check --> OK')
             df_non_miss_check = df[required_cols].copy()
 
-        # required columns checks
+        # Check required cols have non na
+        df[['sample_id','clinical_id']] = df[['sample_id','clinical_id']].replace('nan', np.nan) # We should detect any weird nas now
         if df_non_miss_check.isna().sum().sum()>0:
             st.error('There are some missing entries in the required columns. Please fill the missing cells ')
             st.text('First 30 entries with missing data in any required fields')
@@ -110,35 +107,13 @@ def app():
             st.stop()
         else:
             st.text('Check missing data in the required fields --> OK')
-
-        # sample type check
-        st.text('sample_type check')
-        st.write(df.sample_type.astype('str').value_counts())
-        not_allowed = np.setdiff1d(df.sample_type.unique(), allowed_samples)
-        if len(not_allowed)>0:
-            sampletype = df.sample_type
-            sampletype = sampletype.str.strip().replace(" ", "")
-            not_allowed_v2 = np.setdiff1d(sampletype.unique(), allowed_samples_strp)
-
-            if len(not_allowed_v2) < len(not_allowed):
-                st.text('We have found some undesired whitespaces in some sample type values.')
-                st.text('Processing whitespaces found in certain sample_type entries')
-                stype_map = dict(zip(allowed_samples_strp, allowed_samples))
-                newsampletype = sampletype.replace(stype_map)
-                df['sample_type'] = newsampletype
-                st.text('sample type count after removing undesired whitespaces')
-                st.write(df.sample_type.astype('str').value_counts())
-
-                if len(not_allowed_v2)>0:
-                    st.text('In addition, we have found unknown sample types')
-                    st.error(f'sample_type: {not_allowed_v2} not allowed.')
-                    sample_list = '\n * '.join(allowed_samples)
-                    st.text('Writing entries with sample_type not allowed')
-                    st.write(df[df['sample_type'].isin(not_allowed_v2)])
-                    st.text(f'Allowed sample list - \n * {sample_list}')
-                    st.stop()
-
-
+        
+        df[['sample_id', 'clinical_id']] = df[['sample_id','clinical_id']].astype(str)
+        # clinical id many dups check
+        if df.groupby(['clinical_id']).size().sort_values(ascending=False)[0] > 3:
+            detect_multiple_clindups(df)
+        
+        # Sample id dup checks
         sample_id_dup = df.sample_id[df.sample_id.duplicated()].unique()
         # sample dup check
         if len(sample_id_dup)>0:
@@ -149,17 +124,63 @@ def app():
             st.text(f'Check sample_id duplicaiton --> OK')
             st.text(f'N of sample_id (entries):{df.shape[0]}')
             st.text(f'N of unique clinical_id : {len(df.clinical_id.unique())}')
-        
-        
-        
+
+        # sample type check
+        st.text('sample_type check')
+        st.write(df.sample_type.astype('str').value_counts())
+        not_allowed = np.setdiff1d(df.sample_type.unique(), allowed_samples)
+        if len(not_allowed)>0:
+            sample_type_fix(df, allowed_samples)
+            # sampletype = df.sample_type
+            # #sampletype = sampletype.str.strip().replace(" ", "")
+            # sampletype = sampletype.str.strip().replace(" ", "")
+            # not_allowed_v2 = np.setdiff1d(sampletype.unique(), allowed_samples_strp)
+
+            # if len(not_allowed_v2) < len(not_allowed):
+            #     st.text('We have found some undesired whitespaces in some sample type values.')
+            #     st.text('Processing whitespaces found in certain sample_type entries')
+            #     stype_map = dict(zip(allowed_samples_strp, allowed_samples))
+            #     newsampletype = sampletype.replace(stype_map)
+            #     df['sample_type'] = newsampletype
+            #     st.text('sample type count after removing undesired whitespaces')
+            #     st.write(df.sample_type.astype('str').value_counts())
+
+            #     if len(not_allowed_v2)>0:
+            #         st.text('In addition, we have found unknown sample types')
+            #         st.error(f'sample_type: {not_allowed_v2} not allowed.')
+            #         sample_list = '\n * '.join(allowed_samples)
+            #         st.text('Writing entries with sample_type not allowed')
+            #         st.write(df[df['sample_type'].isin(not_allowed_v2)])
+            #         st.text(f'Allowed sample list - \n * {sample_list}')
+            #         st.stop()
+
+        # Add Genotyping site column
+        df['Genotyping_site'] = choice.replace('For ', '')
+        if choice=='For Fulgent':
+            required_cols = required_cols + fulgent_cols
+
         # GENERATE GP2 IDs #
         jumptwice()
         st.subheader('GP2 IDs assignment...')
-        studynames = list(df['study'].unique())
-
+        #studynames = list(df['study'].unique())
         if st.session_state['master_get'] == None: # TO ONLY RUN ONCE
+            studynames = list(df['study'].unique())
             #ids_tracker = generategp2ids.master_key(studies = studynames)
             ids_tracker = generategp2ids.master_keyv2(studies = studynames)
+           
+            # FOR NOW, WE ARE NOT USING THE FUNCTION TO REMOVE IDS FROM THE MASTER JSON
+            # # Check if this is another QC run of a sample manifest
+            all_sids = []
+            for v in ids_tracker.values():
+                all_sids = all_sids + list(v.keys())
+            if len(np.setdiff1d(df['sample_id'].to_list(), all_sids)) == 0:
+                st.error("It seems that you are trying to QC the same sample manifest again")
+                st.error("Please, contact us on cohort@gp2.org and explain your situation")
+                st.stop()
+            #     if st.button("Start QC again"):
+            #         ids_tracker = generategp2ids.master_remove(studynames, df)
+            #         st.experimental_rerun()
+            #     st.stop()
             study_subsets = []
             log_new = []
             df['GP2sampleID'] = None
@@ -182,6 +203,7 @@ def app():
                     if not sample_id_unique.empty:
                         st.error('We have detected sample ids submitted on previous versions')
                         st.error('Please, correct these sample IDs so that they are unique and resubmit the sample manifest.')
+                        st.error('If this is an attempt to re QC a sample manifest, please contact us on cohort@gp2.org')
                         sample_id_unique = sample_id_unique.rename(columns={"clinical_id_y": "clinical_id"})
                         st.dataframe(
                         sample_id_unique[['study','sample_id','clinical_id']].style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
@@ -226,7 +248,7 @@ def app():
                         df_subset = pd.concat([df_newids, df_wids], axis = 0)
                         study_subsets.append(df_subset)
                         log_new.append(df_newids[['study','clinical_id','sample_id','GP2sampleID']])
-                        
+
                     else: # TO CONSIDER THE CASE IN WHICH WE ONLY HAD DUPLICATE IDS MAPPED ON THE MASTER FILE
                         df_subset['GP2ID'] = df_subset['GP2sampleID'].apply(lambda x: ("_").join(x.split("_")[:-1]))
                         df_subset['SampleRepNo'] = df_subset['GP2sampleID'].apply(lambda x: x.split("_")[-1])#.replace("s",""))
@@ -256,13 +278,13 @@ def app():
                                                                                     x['master_value']))).to_dict()
 
                 #generategp2ids.update_masterids(ids_log, study_tracker) # THIS WILL BE UPDATED ONCE THE USET CONFIRMS THE QC ( AT THE END)
-                
+
                 #if st.session_state['master_get'] == None:
                 if (isinstance(st.session_state['all_ids'], list)):
                     st.session_state['all_ids'].append( [ids_log, study_tracker] )
                 if st.session_state['all_ids'] == None:
                     st.session_state['all_ids'] = [ [ids_log, study_tracker] ]
-            
+
 
             # OUT OF FOR LOOP // END OF GP2 IDS ASSIGNMENT. LET'S RESUME df.
             df = pd.concat(study_subsets, axis = 0)
@@ -289,16 +311,6 @@ def app():
         else:
             df = st.session_state['df_finalids']
             aggridPlotter(df)
-            # df_builder = GridOptionsBuilder.from_dataframe(st.session_state['df_copy'])
-            # df_builder.configure_grid_options(alwaysShowHorizontalScroll = True,
-            #                                     enableRangeSelection=True,
-            #                                     pagination=True,
-            #                                     paginationPageSize=10000,
-            #                                     domLayout='normal')
-            # godf = df_builder.build()
-            # AgGrid(st.session_state['df_copy'],gridOptions=godf, theme='streamlit', height=300)
-            #df = st.session_state['df_finalids']
-        #st.session_state['master_get'] = 'DONE'
 
         jumptwice()
         # diagnosis --> Phenotype
@@ -317,13 +329,17 @@ def app():
         diag = df.diagnosis.dropna().unique()
         n_diag = st.columns(len(diag))
         phenotypes={}
+        count_widget = 0
         for i, x in enumerate(n_diag):
+            count_widget += 1
             with x:
                 mydiag = diag[i]
-                phenotypes[mydiag]=x.selectbox(f"[{mydiag}]: For QC, please pick the closest Phenotype",["PD", "Control", "Prodromal", \
+                phenotypes[mydiag]=x.selectbox(f"[{mydiag}]: For QC, please pick the closest Phenotype",["PD", "Control", \
                                                                                                         "Other", "Not Reported", "MSA", \
-                                                                                                        "PSP", "DLB", "CBS", "AD", "FTD", "VSC"],
-                                                                                                        key=i)
+                                                                                                        "PSP", "DLB", "CBS", "AD", "FTD", "VSC", \
+                                                                                                        "Prodromal_Other", "RBD", "Hyposmia", \
+                                                                                                        "Non-manifesting_carriers"],
+                                                                                                        key=count_widget)
 
         df['Phenotype'] = df.diagnosis.map(phenotypes)
         # cross-tabulation of diagnosis and Phenotype
@@ -352,10 +368,11 @@ def app():
         n_sexes = st.columns(len(sexes))
         mapdic={}
         for i, x in enumerate(n_sexes):
+            count_widget += 1
             with x:
                 sex = sexes[i]
                 mapdic[sex]=x.selectbox(f"[{sex}]: For QC, please pick a word below",
-                                    ["Male", "Female", "Other/Unknown/Not Reported"], key=i)
+                                    ["Male", "Female", "Other/Unknown/Not Reported"], key=count_widget)
         df['biological_sex_for_qc'] = df.sex.replace(mapdic)
 
         # cross-tabulation
@@ -392,9 +409,10 @@ def app():
 
         mapdic = {'Not Reported':'Not Reported'}
         for race in races:
+            count_widget += 1
             mapdic[race]=st.selectbox(f"[{race}]: For QC purppose, select the best match from the followings",
             ["American Indian or Alaska Native", "Asian", "White", "Black or African American",
-            "Multi-racial", "Native Hawaiian or Other Pacific Islander", "Other", "Unknown", "Not Reported"])
+            "Multi-racial", "Native Hawaiian or Other Pacific Islander", "Other", "Unknown", "Not Reported"], key=count_widget)
         df['race_for_qc'] = df.race_for_qc.map(mapdic)
 
 
@@ -428,9 +446,10 @@ def app():
         if len(family_historys)>0:
             n_fhs = st.columns(len(family_historys))
             for i, x in enumerate(n_fhs):
+                count_widget += 1
                 with x:
                     fh = family_historys[i]
-                    mapdic[fh]=x.selectbox(f'[{fh}]: For QC, any family history?',['Yes', 'No', 'Not Reported'], key=i)
+                    mapdic[fh]=x.selectbox(f'[{fh}]: For QC, any family history?',['Yes', 'No', 'Not Reported'], key=count_widget)
         df['family_history_for_qc'] = df.family_history_for_qc.map(mapdic).fillna('Not Assigned')
 
 
@@ -500,10 +519,10 @@ def app():
                             values='sample_id', aggfunc='count', fill_value=0)
         st.write(xtab)
 
+        show_all_duppos = []
         for plate in dft.Plate_name.unique():
             df_plate = dft[dft.Plate_name==plate].copy()
             df_plate_pos = df_plate.Plate_position
-            # duplicated position check
             if plate!='_Missing':
                 if len(df_plate_pos)>96:
                     st.error('Please make sure, N of samples on plate [{plate}] is =<96')
@@ -511,7 +530,9 @@ def app():
                 dup_pos = df_plate_pos[df_plate_pos.duplicated()].unique()
                 if len(dup_pos)>0:
                     st.error(f' !!!SERIOUS ERROR!!!  Plate position duplicated position {dup_pos} on plate [{plate}]')
-                    st.stop()
+                    show_all_duppos.append((dup_pos, plate))
+        if len(show_all_duppos) > 0:
+            st.stop()
 
         # Numeric values
         jumptwice()
@@ -547,8 +568,6 @@ def app():
                                     ax = ax_hist)
                     fig.set_tight_layout(True)
                     st.write(fig)
-                    #st.pyplot(fig)
-
                 jumptwice()
 
         if st.button("Finished?"):
@@ -556,43 +575,27 @@ def app():
             if not (ph_conf & sex_conf & race_conf & fh_conf & rg_conf):
                 st.error('Did you forget to confirm any of the steps above?')
                 st.error("Please, tick all the boxes on the previous steps if the QC to meet GP2 standard format was successful")
+            elif studycode == None:#st.session_state['keepcode'] == None:
+                st.error('Please make sure you have selected the study code on the side bar')
+                st.error('If you are unsure which study code is yours, please email us at cohort@gp2.org')
             else:
                 # Update json file with master IDs
                 #generategp2ids.update_masterids(ids_log, study_tracker)
                 for idslog_tracker in st.session_state['all_ids']:
-                    generategp2ids.update_masterids(idslog_tracker[0], idslog_tracker[1])
-
+                    generategp2ids.update_masterids(idslog_tracker[0], idslog_tracker[1], studycode)
+                    email_ellie(studycode = studycode, activity = 'upload')
+                    
                 df = df.reset_index(drop=True)
-                #df_final = clin.merge(df, how = 'inner', on =  ['sample_id', 'study'])
-                # Add data to session state
-                #st.session_state['allqc'] = df_final
+                df['CustomOrder'] = df['sample_id'].apply(lambda x: original_order.index(x))
+                df = df.sort_values(by='CustomOrder')
+                df = df.drop(columns=['CustomOrder'])
+
                 st.session_state['smqc'] = df
-                #st.session_state['clinqc'] = clin
-                #st.session_state['dct_tmplt'] = dct
-
-                # Generate excel sheet for download
                 st.markdown('<p class="medium-font"> CONGRATS, your sample manifest meets all the GP2 requirements. </p>', unsafe_allow_html=True )
-                #writeexcel = to_excelv2(df, clin, dct)
-                writeexcel = to_excel(df, datatype = 'sm')
-                #qcmanifest = output_create(df_final, filetype=output_choice)
-                
-                #from streamlit import caching
-                from streamlit import legacy_caching
-                import time
-                #from streamlit.scriptrunner import RerunException
-                def cach_clean():
-                    time.sleep(1)
-                    legacy_caching.clear_cache()
-
-                
+                writeexcel = to_excel(df, st.session_state['keepcode'], datatype = 'sm')
                 st.download_button(label='📥 Download your QC sample manifest',
                                    data = writeexcel[0],
-                                   file_name = writeexcel[1],
-                                   on_click = cach_clean())
-                
-                
-                # Set session state for master files to None
-                #st.session_state['master_get'] = None
+                                   file_name = writeexcel[1])
 
         jumptwice()
         st.markdown("<a href='#link_to_top'>Link to top</a>", unsafe_allow_html=True)

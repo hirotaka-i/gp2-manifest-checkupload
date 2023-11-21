@@ -4,21 +4,21 @@ try:
     import sys
     import pandas as pd
     import numpy as np
-    from st_aggrid import AgGrid, GridOptionsBuilder, AgGridTheme, ColumnsAutoSizeMode
     from functools import reduce
-    
+    import re
+
     sys.path.append('utils')
     from customcss import load_css
-    from writeread import read_file, to_excel
+    from writeread import read_file, to_excel, get_studycode
     from generategp2ids import master_keyv2
     from qcutils import checkNull, TakeOneEntry, checkDup
+    from plotting import aggridPlotter
 
 except Exception as e:
     print("Some modules are not installed {}".format(e))
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
-#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
-
+#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
 
 
 def jumptwice():
@@ -26,8 +26,8 @@ def jumptwice():
     st.write("##")
 
 def app():
-    #load_css("/app/apps/css/css.css")
-    load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
+    load_css("/app/apps/css/css.css")
+    #load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
     st.markdown("""<div id='link_to_top'></div>""", unsafe_allow_html=True)
     st.markdown('<p class="big-font">GP2 clinical data self-QC</p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> This is a app tab to self-check the sample manifest and clinical data. </p>', unsafe_allow_html=True)
@@ -40,6 +40,11 @@ def app():
     st.markdown('<p class="medium-font"> Once the QC process completes, please move to the Upload tab of the app to store your sample manifest </p>', unsafe_allow_html=True)
 
     data_file = st.sidebar.file_uploader("Upload Your clinical data (CSV/XLSX)", type=['xlsx', 'csv'])
+
+    study_name = get_studycode() # This will set study_name to None when initialised
+    if 'keepcode' in st.session_state:
+        if len(re.findall(r'-', st.session_state['keepcode']))>0:
+            study_name = st.session_state['keepcode'].split('-')[0]
     
     cols = ['study', 'sample_id', 'visit_month',
             'mds_updrs_part_iii_summary_score',
@@ -164,17 +169,17 @@ def app():
                 
                 st.session_state['clinqc'] = final_df
 
+                aggridPlotter(final_df)
+                # df_builder = GridOptionsBuilder.from_dataframe(final_df)
+                # df_builder.configure_grid_options(alwaysShowHorizontalScroll = True,
+                #                                     enableRangeSelection=True,
+                #                                     pagination=True,
+                #                                     paginationPageSize=10000,
+                #                                     domLayout='normal')
+                # godf = df_builder.build()
+                # AgGrid(final_df,gridOptions=godf, theme='streamlit', height=300)
 
-                df_builder = GridOptionsBuilder.from_dataframe(final_df)
-                df_builder.configure_grid_options(alwaysShowHorizontalScroll = True,
-                                                    enableRangeSelection=True,
-                                                    pagination=True,
-                                                    paginationPageSize=10000,
-                                                    domLayout='normal')
-                godf = df_builder.build()
-                AgGrid(final_df,gridOptions=godf, theme='streamlit', height=300)
-
-                writeexcel = to_excel(final_df, datatype = 'clinical')
+                writeexcel = to_excel(final_df, st.session_state['keepcode'], datatype = 'clinical')
                 st.download_button(label='📥 Download your QC clinical data',
                                    data = writeexcel[0],
                                    file_name = writeexcel[1],)
@@ -206,16 +211,21 @@ def app():
 
                 # I have not managed to fir the contenct 
                 # https://discuss.streamlit.io/t/is-there-a-way-to-autosize-all-columns-by-default-on-rendering-with-streamlit-aggrid/31841/4
-                df_builder = GridOptionsBuilder.from_dataframe(df_final)
-                df_builder.configure_grid_options(alwaysShowHorizontalScroll = True,
-                                                    enableRangeSelection=True,
-                                                    pagination=True,
-                                                    paginationPageSize=10000,
-                                                    domLayout='normal')
-                godf = df_builder.build()
-                AgGrid(df_final,gridOptions=godf, theme='streamlit', height=300)
+                aggridPlotter(df_final)
+                # df_builder = GridOptionsBuilder.from_dataframe(df_final)
+                # df_builder.configure_grid_options(alwaysShowHorizontalScroll = True,
+                #                                     enableRangeSelection=True,
+                #                                     pagination=True,
+                #                                     paginationPageSize=10000,
+                #                                     domLayout='normal')
+                
+                # godf = df_builder.build()
+                # AgGrid(df_final,gridOptions=godf, theme='streamlit', height=300)
 
-                qc_yesno = st.selectbox("Does the variable QC look correct?", [" ", "YES", "NO"] )
+                #qc_yesno = st.selectbox("Does the variable QC look correct?", [" ", "YES", "NO"] )
+                qc_yesno = st.selectbox("Does the variable QC look correct?", 
+                                        ["YES", "NO"],
+                                        index=None)
                 if qc_yesno == 'YES':
                     st.info('Thank you')
                     st.session_state['data_chunks'].append(df_final)

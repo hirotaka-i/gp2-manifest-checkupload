@@ -1,40 +1,30 @@
 try:
     import os
-    from io import BytesIO
-    import pandas as pd
-    from google.cloud import storage
     import streamlit as st
-    from datetime import datetime
     import sys
     import re
     sys.path.append('utils')
     from customcss import load_css
-    from writeread import upload_data, read_filev2, read_file
+    from writeread import upload_data, read_file, get_studycode, email_ellie
     from st_aggrid import AgGrid, GridOptionsBuilder
 except Exception as e:
     print("Some modules are not installed {}".format(e))
 
-# Setup the GCP Creds
-#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/secrets/secrets.json"
+#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
 
 def app():
-    load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
-    #load_css("/app/apps/css/css.css")
+    #load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
+    load_css("/app/apps/css/css.css")
     st.markdown('<p class="big-font"> GP2 Sample Uploader System</p>', unsafe_allow_html=True)
 
-    # Add study name text box
-    study_name = st.sidebar.text_input(
-        "Introduce the study name"
-    )
-    study_name = study_name.strip()
-    # Add files browser
-    # source_file = st.file_uploader(
-    #     "Upload the QC Sample Manifest",
-    #     type=["xlsx"]
-    # )
     source_file = st.sidebar.file_uploader("Upload the QC Sample Manifest",
                                             type=['xlsx'])
+
+    study_name = get_studycode() # This will set study_name to None when initialised
+    if 'keepcode' in st.session_state:
+        if len(re.findall(r'-', st.session_state['keepcode']))>0:
+            study_name = st.session_state['keepcode'].split('-')[0]
 
     # Add preview util
     if source_file is not None:
@@ -75,11 +65,16 @@ def app():
         # Add uploader button
         if st.button("Upload to GP2 Google Cloud Bucket"):
             if whatfile == 'sampleManifest':
-                try:
+                if st.session_state['smqc'] is not None:
+                #try:
                     df[['sample_id', 'clinical_id', 'SampleRepNo']] = df[['sample_id','clinical_id', 'SampleRepNo']].astype(str)
-                    comp = df.compare(st.session_state['smqc'])
-                    checkdf = True if comp.shape == (0, 0) else False             
-                except:
+                    #st.session_state['smqc'][['sample_id', 'clinical_id', 'SampleRepNo']]= st.session_state['smqc'][['sample_id', 'clinical_id', 'SampleRepNo']].astype(str)
+                    #comp = df.compare(st.session_state['smqc'])
+                    #st.write(comp)
+                    #checkdf = True if comp.shape == (0, 0) else False
+                    checkdf = True if df.shape == st.session_state['smqc'].shape else False     
+                else:
+                #except:
                     checkdf = True if df.shape[1] == n_cols else False
             
             if whatfile == 'clinical':
@@ -91,7 +86,7 @@ def app():
                     checkdf = True if df.shape[1] == n_cols else False
 
             if checkdf:
-                if study_name:
+                if study_name :
                     if manifest_check == "Yes":
                         bucket_name = "eu-samplemanifest"
                         #destination = os.path.join(study_name, file_name + "_" + get_date() + file_extension)
@@ -101,6 +96,7 @@ def app():
                         st.markdown(
                             '<p class="medium-font"> {} !!</p>'.format(check),
                             unsafe_allow_html=True)
+                        email_ellie(studycode = st.session_state['keepcode'], activity = 'qc')
                     else:
                         st.error("ERROR: Please confirm that the data looks correct on the checkbox above")
                 else:
