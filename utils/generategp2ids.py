@@ -4,20 +4,25 @@ import numpy as np
 import pandas as pd
 from google.cloud import storage
 import streamlit as st
-
+import datetime as dt
 
 #@st.cache(hash_funcs={'_json.Scanner': hash})
 #@st.experimental_memo()
-def update_masterids(ids_log, ids_dict):
+def update_masterids(ids_log, ids_dict, scode):
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
-    #blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230718.json')
-    #blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230810.json')
     blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
+    #blob = bucket.blob('IDSTRACKER/TESTS_GP2IDSMAPPER.json')
     
+    today = dt.datetime.today()
+    version = f'{today.year}{today.month}{today.day}'
+    archive_blob = bucket.blob("IDSTRACKER/ARCHIVE/{v}_{s}_GP2IDSMAPPER.json".format(v = version, s = scode))
+
+    # Create security copy
     with blob.open("r") as fp:
         masterids = json.load(fp)
-    
+    with archive_blob.open("w") as fp:
+        json.dump(masterids, fp)
     if bool(ids_dict):
         for study, newdata in ids_log.items():
             masterids[study].update(newdata)
@@ -25,12 +30,11 @@ def update_masterids(ids_log, ids_dict):
         for study, newdata in ids_log.items():
             masterids[study] = newdata
     
+    # Update MASTERJSON with new IDs
     with blob.open("w") as fp:
         json.dump(masterids, fp)
     
     return(masterids)
-    #print("MASTER IDS UPDATED")
-
 
 #@st.cache
 def master_key(studies):
@@ -38,7 +42,8 @@ def master_key(studies):
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
     blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
-    
+    #blob = bucket.blob('IDSTRACKER/TESTS_GP2IDSMAPPER.json')
+
     ids_tracker = {}
     for cohort in studies:
         with blob.open("r") as f:
@@ -48,20 +53,44 @@ def master_key(studies):
     
     return(ids_tracker)
 
+
 def master_keyv2(studies):
     # ACCESS MASTERGP2IDS_JSON IN GP2 BUCKET
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
     blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
-    
+    #blob = bucket.blob('IDSTRACKER/TESTS_GP2IDSMAPPER.json')
     ids_tracker = {}
     with blob.open("r") as f:
         for k, v in ijson.kvitems(f, ''):
             if k in studies:
                 ids_tracker.update({k:v})
-    
     return(ids_tracker)
 
+
+def master_remove(studies, data):
+    client = storage.Client()
+    bucket = client.get_bucket('eu-samplemanifest')
+    blob = bucket.blob('IDSTRACKER/TESTS_GP2IDSMAPPER.json')
+    #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
+    
+    with blob.open("r") as fp:
+        masterids = json.load(fp)
+    
+    masterids_copy = masterids.copy()
+    for study in studies:
+        study_master = masterids_copy.pop(study)
+        if len(data['sample_id'].to_list()) == len(list(study_master.keys())):
+            removestudy = masterids.pop(study)
+        else:
+            ids_remove = list(set(data['sample_id'].to_list()) & set(list(study_master.keys())))
+            for k in ids_remove:
+                removeid = study_master.pop(k, None)
+    
+    with blob.open("w") as fp:
+        json.dump(masterids, fp) # Update the json file
+    
+    return(masterids)
 
 
 def getgp2idsv2(dfproc, n, study_code):
@@ -125,6 +154,25 @@ def assign_unique_gp2clinicalids(df, clinicalid_subset):
     return (getnewidrows)
 
 
+
+# def update_masterids(ids_log, ids_dict):
+#     client = storage.Client()
+#     bucket = client.get_bucket('eu-samplemanifest')
+#     #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
+#     blob = bucket.blob('IDSTRACKER/TESTS_GP2IDSMAPPER.json')
+#     with blob.open("r") as fp:
+#         masterids = json.load(fp)
+#     if bool(ids_dict):
+#         for study, newdata in ids_log.items():
+#             masterids[study].update(newdata)
+#     else:
+#         for study, newdata in ids_log.items():
+#             masterids[study] = newdata
+#     with blob.open("w") as fp:
+#         json.dump(masterids, fp)
+#     return(masterids)
+
+
 # def getgp2ids(df_updateids, n, uids, study_code):
 #     mapid = {}
 #     for uid in uids:
@@ -147,6 +195,7 @@ def assign_unique_gp2clinicalids(df, clinicalid_subset):
 #     blob = bucket.blob('IDSTRACKER/CLINICALGP2IDS_MAPPER_20230718.json')
 #     return blob
 
+
 # @st.cache
 # def update_masterids(blob, ids_log, ids_dict):
 #     #client = storage.Client()
@@ -167,6 +216,7 @@ def assign_unique_gp2clinicalids(df, clinicalid_subset):
 #         json.dump(masterids, fp)
     
 #     print("MASTER IDS UPDATED")
+
 
 # @st.cache
 # def master_key(blob, studies):

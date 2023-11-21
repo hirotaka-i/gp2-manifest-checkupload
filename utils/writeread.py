@@ -5,6 +5,35 @@ from io import BytesIO
 import streamlit as st
 import xlsxwriter
 from google.cloud import storage
+from streamlit_gsheets import GSheetsConnection
+import os
+import json
+import smtplib
+from email.mime.text import MIMEText
+
+
+def studycode_callback():
+    st.session_state['keepcode'] = st.session_state['mycode']
+
+def get_studycode():
+    if 'studycodes' not in st.session_state:
+        conn = st.experimental_connection("gsheets", type=GSheetsConnection)
+        with open(os.environ["GOOGLE_APPLICATION_CREDENTIALS"]) as f:
+            get_json = json.load(f)
+            url = get_json['connections']['gsheets']['spreadsheet']
+            #df = conn.read(spreadsheet = url, worksheet="GenoTracker", usecols = [2])
+            df = conn.read(spreadsheet=url, worksheet="GenoTracker", usecols = [2])
+            study_codes = df.iloc[:, 0].str.strip().dropna().unique().tolist()
+            study_codes.remove('Study Code')
+            study_codes = sorted(study_codes, key=str.lower)
+            st.session_state['studycodes'] = study_codes
+    study_name = st.sidebar.selectbox(
+        'Select your GP2 study code',
+        st.session_state['studycodes'],
+        key='mycode',
+        index=None,
+        on_change = studycode_callback)
+    return study_name
 
 
 def upload_data(bucket_name, data, destination):
@@ -34,18 +63,18 @@ def to_excelv2(df,clin, dct):
     processed_data = output.getvalue()
     return processed_data, filename
 
-def to_excel(df, datatype = 'sm'):
+def to_excel(df, studycode, datatype = 'sm'):
     """It returns an excel object sheet with the QC sample manifest
     and clinical data written in separate
     """
     today = dt.datetime.today()
     version = f'{today.year}{today.month}{today.day}'
-    study_code = df.study.unique()[0]
+    #study_code = df.study.unique()[0]
     ext = "xlsx"
     if datatype == 'sm':
-        filename = "{s}_sample_manifest_selfQC_{v}.{e}".format(s=study_code, v = version, e = ext)
+        filename = "{s}_sample_manifest_selfQC_{v}.{e}".format(s=studycode, v = version, e = ext)
     else:
-        filename = "{s}_clinial_data_selfQC_{v}.{e}".format(s=study_code, v = version, e = ext)
+        filename = "{s}_clinial_data_selfQC_{v}.{e}".format(s=studycode, v = version, e = ext)
     
     output = BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
@@ -55,13 +84,40 @@ def to_excel(df, datatype = 'sm'):
     return processed_data, filename
 
 
+def email_ellie(studycode, activity):
+    if activity == 'qc':
+        subject = f'{studycode} has finished QCing the manifest'
+        body = 'Hey team, \n Someone has finished QCing the manifest. They should upload to the bucket soon. \n Keep an eye if the don\'t'
+    elif activity == 'upload':
+        subject = f'{studycode} has uploaded the data to the bucket'
+        body = 'Hey team, \n Someone has uploaded the sm to the bucket'
+    else:
+        st.error(f'{activity} not detected')
+        st.stop()
+
+    with open(os.environ["GOOGLE_APPLICATION_CREDENTIALS"]) as f:
+        get_json = json.load(f)
+        sender = get_json['email_data']['secrets']['sender']
+        receiver = get_json['email_data']['secrets']['receiver']
+        pwd = get_json['email_data']['secrets']['pwd']
+    
+    msg = MIMEText(body)
+    msg['From'] = sender
+    msg['To'] = ", ".join(receiver)
+    msg['Subject'] = subject
+
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login(sender, pwd)
+    server.sendmail(sender, receiver, msg.as_string())
+    server.quit()
 
 
 def read_file(data_file):
     if data_file.type == "text/csv":
-        df = pd.read_csv(data_file)
+        df = pd.read_csv(data_file, dtype={'clinical_id':'str', 'sample_id':'str'})
     elif data_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-        df = pd.read_excel(data_file, sheet_name=0)
+        df = pd.read_excel(data_file, sheet_name=0, dtype={'clinical_id':'str', 'sample_id':'str'})
     return (df)
 
 def read_filev2(data_file):
