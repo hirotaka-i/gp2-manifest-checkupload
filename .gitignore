@@ -1,5 +1,6 @@
 data/*
 secrets/*
+.streamlit/*
 log.txt
 Pipfile.lock
 Pipfile
