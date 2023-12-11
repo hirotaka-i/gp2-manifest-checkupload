@@ -96,7 +96,7 @@ def app():
                         st.markdown(
                             '<p class="medium-font"> {} !!</p>'.format(check),
                             unsafe_allow_html=True)
-                        email_ellie(studycode = st.session_state['keepcode'], activity = 'qc')
+                        email_ellie(studycode = st.session_state['keepcode'], activity = 'upload')
                     else:
                         st.error("ERROR: Please confirm that the data looks correct on the checkbox above")
                 else:
