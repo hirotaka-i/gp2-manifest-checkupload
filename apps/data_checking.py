@@ -70,19 +70,10 @@ def app():
         df.index = df.index +2
         original_order = df.sample_id.to_list()
         jumptwice()
-        # missing col check
-        # missing_cols = np.setdiff1d(cols, df.columns)
-        # if len(missing_cols)>0:
-        #     st.error(f'{missing_cols} are missing. Please use the template sheet')
-        #     st.stop()
-        # else:
-        #     st.text('Check column names--> OK')
-        #     df_non_miss_check = df[required_cols].copy()
-        #heck we do noe have more cols than the ones needed
         
-        # Perform the QC checks once
-        #if 'doqc' not in st.session_state:
-            
+        if choice=='For Fulgent':
+            required_cols = required_cols + fulgent_cols
+         
         missing_cols = np.setdiff1d(cols, df.columns)
         if len(missing_cols)>0:
             st.error(f'{missing_cols} are missing. Please use the template sheet')
@@ -131,33 +122,6 @@ def app():
         not_allowed = np.setdiff1d(df.sample_type.unique(), allowed_samples)
         if len(not_allowed)>0:
             sample_type_fix(df, allowed_samples)
-            # sampletype = df.sample_type
-            # #sampletype = sampletype.str.strip().replace(" ", "")
-            # sampletype = sampletype.str.strip().replace(" ", "")
-            # not_allowed_v2 = np.setdiff1d(sampletype.unique(), allowed_samples_strp)
-
-            # if len(not_allowed_v2) < len(not_allowed):
-            #     st.text('We have found some undesired whitespaces in some sample type values.')
-            #     st.text('Processing whitespaces found in certain sample_type entries')
-            #     stype_map = dict(zip(allowed_samples_strp, allowed_samples))
-            #     newsampletype = sampletype.replace(stype_map)
-            #     df['sample_type'] = newsampletype
-            #     st.text('sample type count after removing undesired whitespaces')
-            #     st.write(df.sample_type.astype('str').value_counts())
-
-            #     if len(not_allowed_v2)>0:
-            #         st.text('In addition, we have found unknown sample types')
-            #         st.error(f'sample_type: {not_allowed_v2} not allowed.')
-            #         sample_list = '\n * '.join(allowed_samples)
-            #         st.text('Writing entries with sample_type not allowed')
-            #         st.write(df[df['sample_type'].isin(not_allowed_v2)])
-            #         st.text(f'Allowed sample list - \n * {sample_list}')
-            #         st.stop()
-
-        # Add Genotyping site column
-        df['Genotyping_site'] = choice.replace('For ', '')
-        if choice=='For Fulgent':
-            required_cols = required_cols + fulgent_cols
 
         # GENERATE GP2 IDs #
         jumptwice()
@@ -292,7 +256,6 @@ def app():
             st.write("GPS IDs assignment... OK")
 
             #if st.session_state['master_get'] == None:
-            st.session_state['df_copy'] = df
             if len(log_new) > 0:
                 allnew = pd.concat(log_new, axis = 0).reset_index(drop=True)
                 st.write("Thanks for uploading a new version of the sample manifest")
@@ -302,15 +265,19 @@ def app():
                 allnew.style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
                 #allnew.style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
                 )
-            else:
-                aggridPlotter(df)
-
+            #else:
+            #    aggridPlotter(df)
             st.session_state['df_finalids'] = df
             st.session_state['master_get'] = 'DONE'
 
         else:
             df = st.session_state['df_finalids']
-            aggridPlotter(df)
+
+
+        # Add Genotyping site column and plot the df
+        df['Genotyping_site'] = choice.replace('For ', '')
+        aggridPlotter(df)
+        
 
         jumptwice()
         # diagnosis --> Phenotype
@@ -583,7 +550,7 @@ def app():
                 #generategp2ids.update_masterids(ids_log, study_tracker)
                 for idslog_tracker in st.session_state['all_ids']:
                     generategp2ids.update_masterids(idslog_tracker[0], idslog_tracker[1], studycode)
-                    email_ellie(studycode = studycode, activity = 'upload')
+                    email_ellie(studycode = studycode, activity = 'qc')
                     
                 df = df.reset_index(drop=True)
                 df['CustomOrder'] = df['sample_id'].apply(lambda x: original_order.index(x))
