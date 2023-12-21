@@ -54,7 +54,7 @@ def app():
             'age', 'age_of_onset', 'age_at_diagnosis', 'age_at_death', 'age_at_last_follow_up',
             'family_history', 'region', 'comment', 'alternative_id1', 'alternative_id2']
     required_cols = ['study', 'sample_id', 'sample_type', 'clinical_id','study_arm', 'diagnosis', 'sex']
-    allowed_samples = ['Blood (EDTA)', 'Blood (ACD)', 'Blood', 'DNA',
+    allowed_samples = ['Blood (EDTA)', 'Blood (ACD)', 'Blood', 'DNA', 'DNA from Brain'
                         'DNA from blood', 'DNA from FFPE', 'RNA', 'Saliva',
                         'Buccal Swab', 'T-25 Flasks (Amniotic)', 'FFPE Slide',
                         'FFPE Block', 'Fresh tissue', 'Frozen tissue',
