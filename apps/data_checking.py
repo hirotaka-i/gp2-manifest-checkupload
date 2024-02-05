@@ -344,8 +344,8 @@ def app():
             matching_rows = df[df['study_type'] == 'Genetically Enriched']
             df.loc[matching_rows.index, 'GP2_phenotype_for_qc'] = 'Other'            
 
-        st.write(all_studytype)
-        st.dataframe(df)
+        #st.write(all_studytype)
+        #st.dataframe(df)
         #aggridPlotter(df)
         #df['study_type'].
         #df['GP2_phenotype_for_qc'] = 
