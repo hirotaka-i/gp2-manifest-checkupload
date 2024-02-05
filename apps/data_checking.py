@@ -62,7 +62,7 @@ def app():
                     'PSP', 'CBS', 'MSA', 'DLB', 'AD', 'FTD', 'VSC', 
                     'Population Control', 'Undetermined-MCI', 'Undetermined-Dementia', 'MIX']
 
-    allowed_samples = ['Blood (EDTA)', 'Blood (ACD)', 'Blood', 'DNA', 'DNA from Brain'
+    allowed_samples = ['Blood (EDTA)', 'Blood (ACD)', 'Blood', 'DNA', 'DNA from Brain',
                         'DNA from blood', 'DNA from FFPE', 'RNA', 'Saliva',
                         'Buccal Swab', 'T-25 Flasks (Amniotic)', 'FFPE Slide',
                         'FFPE Block', 'Fresh tissue', 'Frozen tissue',
