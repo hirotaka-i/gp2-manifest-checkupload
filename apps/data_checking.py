@@ -31,7 +31,7 @@ def app():
     st.markdown('<p class="big-font">GP2 sample manifest self-QC</p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> This is a app tab to self-check the sample manifest and clinical data. </p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Download the template from the link below. Once you open the link, go to "File"> "Download" > "xlsx" or "csv" format </p>', unsafe_allow_html=True)
-    st.markdown('[Access the data dictionary and templates](https://docs.google.com/spreadsheets/d/19L5EgSsvax4qBWa6iPUCSD3FUm7T9Ux3V8Ptdt6Dtuk/edit#gid=520666050)', unsafe_allow_html=True)
+    st.markdown('[Access the data dictionary and templates](https://docs.google.com/spreadsheets/d/1nZwdNdM3le6yir_Q2O2Rt7XYwQqsVSOtSSyY5EoK5ok/edit#gid=0)', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Please refer to the second tab (Dictionary) for instructions. </p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Please refer to the first tab (sm) to access sample manifest template to fill in. </p>', unsafe_allow_html=True)
     st.markdown('<p class="medium-font"> Please note all the GP2 required columns must be completed </p>', unsafe_allow_html=True)
@@ -47,21 +47,28 @@ def app():
     sex_conf=''
     race_conf = ''
     fh_conf=''
-    cols = ['study', 'sample_id', 'sample_type',
+
+    cols = ['study','study_type', 'sample_id', 'sample_type',
             'DNA_volume', 'DNA_conc', 'r260_280',
             'Plate_name', 'Plate_position', 'clinical_id',
             'study_arm', 'diagnosis', 'sex', 'race',
             'age', 'age_of_onset', 'age_at_diagnosis', 'age_at_death', 'age_at_last_follow_up',
             'family_history', 'region', 'comment', 'alternative_id1', 'alternative_id2']
-    required_cols = ['study', 'sample_id', 'sample_type', 'clinical_id','study_arm', 'diagnosis', 'sex']
+    
+    required_cols = ['study', 'study_type', 'sample_id', 'sample_type', 'clinical_id', 'study_arm', 'diagnosis', 'sex']
+    fulgent_cols = ['DNA_volume', 'DNA_conc', 'Plate_name', 'Plate_position']
+
+    gptwo_phenos = ['PD', 'Control', 'Prodromal',
+                    'PSP', 'CBS', 'MSA', 'DLB', 'AD', 'FTD', 'VSC', 
+                    'Population Control', 'Undetermined-MCI', 'Undetermined-Dementia', 'MIX']
+
     allowed_samples = ['Blood (EDTA)', 'Blood (ACD)', 'Blood', 'DNA', 'DNA from Brain'
                         'DNA from blood', 'DNA from FFPE', 'RNA', 'Saliva',
                         'Buccal Swab', 'T-25 Flasks (Amniotic)', 'FFPE Slide',
                         'FFPE Block', 'Fresh tissue', 'Frozen tissue',
                         'Bone Marrow Aspirate', 'Whole BMA', 'CD3+ BMA', 'Other']
-    fulgent_cols = ['DNA_volume', 'DNA_conc', 'Plate_name', 'Plate_position']
-
-    allowed_samples_strp = [samptype.strip().replace(" ", "") for samptype in allowed_samples]
+    #allowed_samples_strp = [samptype.strip().replace(" ", "") for samptype in allowed_samples]
+    allowed_studyType = ["Case Control", "Prodromal", "Genetically Enriched", "Population Cohort"]
 
     if data_file is not None:
         jumptwice()
@@ -121,7 +128,15 @@ def app():
         st.write(df.sample_type.astype('str').value_counts())
         not_allowed = np.setdiff1d(df.sample_type.unique(), allowed_samples)
         if len(not_allowed)>0:
-            sample_type_fix(df, allowed_samples)
+            #sample_type_fix(df, allowed_samples)
+            sample_type_fix(df = df, allowed_samples = allowed_samples, col = 'sample_type')
+
+        # study type check
+        st.text('study_type check')
+        st.write(df.study_type.astype('str').value_counts())
+        not_allowed = np.setdiff1d(df.study_type.unique(), allowed_studyType)
+        if len(not_allowed)>0:
+            sample_type_fix(df = df, allowed_samples = allowed_studyType, col = 'study_type')
 
         # GENERATE GP2 IDs #
         jumptwice()
@@ -274,18 +289,19 @@ def app():
             df = st.session_state['df_finalids']
 
 
-        # Add Genotyping site column and plot the df
+        # Add Genotyping site and study cols
         df['Genotyping_site'] = choice.replace('For ', '')
+        #df['study'] = studycode TO DISCUSS WITH HIROTAKA .... ISSUE WITH STUDY WITH MULTIPLE SUBSTUDIES
+
         aggridPlotter(df)
         
-
         jumptwice()
         # diagnosis --> Phenotype
-        st.subheader('Create "Phenotype"')
+        st.subheader('Create Phenotype column')
         st.text('Show study arm versus diagnosis')
         # Add xtab for diagnosis vs study arm
         xtab = df.pivot_table(index='study_arm', columns='diagnosis', margins=True,
-                            values='sample_id', aggfunc='count', fill_value=0)
+                              values='sample_id', aggfunc='count', fill_value=0)
         st.write(xtab)
 
         jumptwice()
@@ -301,28 +317,38 @@ def app():
             count_widget += 1
             with x:
                 mydiag = diag[i]
-                phenotypes[mydiag]=x.selectbox(f"[{mydiag}]: For QC, please pick the closest Phenotype",["PD", "Control", \
-                                                                                                        "Other", "Not Reported", "MSA", \
-                                                                                                        "PSP", "DLB", "CBS", "AD", "FTD", "VSC", \
-                                                                                                        "Prodromal_Other", "RBD", "Hyposmia", \
-                                                                                                        "Non-manifesting_carriers"],
-                                                                                                        key=count_widget)
+                phenotypes[mydiag]=x.selectbox(f"[{mydiag}]: For QC, please pick the closest Phenotype",
+                                               gptwo_phenos,
+                                               key=count_widget)
 
-        df['Phenotype'] = df.diagnosis.map(phenotypes)
+        # diagnosis and phenotype relationships are 1:1
+        df['GP2_phenotype'] = df.diagnosis.map(phenotypes)
         # cross-tabulation of diagnosis and Phenotype
         st.text('=== Phenotype x diagnosis===')
-        xtab = df.pivot_table(index='Phenotype', columns='diagnosis', margins=True,
-                                values='sample_id', aggfunc='count', fill_value=0)
+        xtab = df.pivot_table(index='GP2_phenotype', columns='diagnosis', margins=True,
+                              values='sample_id', aggfunc='count', fill_value=0)
         st.write(xtab)
 
         ph_conf = st.checkbox('Confirm Phenotype?')
         if ph_conf:
             st.info('Thank you')
 
-        # Get QCed Phenotype and map it to PD, Control, Other
-        pattern_other = '|'.join(['Prodromal', 'NotReported', 'MSA', 'PSP', 'DLB', 'CBS', 'AD'])
-        df['phenotype_for_qc'] = df['Phenotype'].str.replace(" ", "").str.replace(pattern_other, 'Other')
+        #phenoqc_other = '|'.join(['Prodromal', 'PSP', 'CBS', 'MSA', 'DLB', 'AD', 'FTD', 'VSC',
+        #                          'Undetermined-MCI', 'Undetermined-Dementia', 'MIX'])
+        #df['phenotype_for_qc'] = df['GP2_phenotype'].str.replace(" ", "").str.replace(phenoqc_other, 'Other')
+        # Apply the function to the DataFrame column
+        df['GP2_phenotype_for_qc'] = df['GP2_phenotype'].apply(lambda pheno: pheno if pheno in ['PD','Control'] else 'Other')
+        all_studytype = df['study_type'].unique().tolist()
+        if 'Genetically Enriched' in all_studytype:
+            st.write("IN")
+            matching_rows = df[df['study_type'] == 'Genetically Enriched']
+            df.loc[matching_rows.index, 'GP2_phenotype_for_qc'] = 'Other'            
 
+        st.write(all_studytype)
+        st.dataframe(df)
+        #aggridPlotter(df)
+        #df['study_type'].
+        #df['GP2_phenotype_for_qc'] = 
 
         # sex for qc
         jumptwice()
