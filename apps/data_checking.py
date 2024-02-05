@@ -59,8 +59,9 @@ def app():
     fulgent_cols = ['DNA_volume', 'DNA_conc', 'Plate_name', 'Plate_position']
 
     gptwo_phenos = ['PD', 'Control', 'Prodromal',
-                    'PSP', 'CBS', 'MSA', 'DLB', 'AD', 'FTD', 'VSC', 
-                    'Population Control', 'Undetermined-MCI', 'Undetermined-Dementia', 'MIX']
+                    'PSP', 'CBD/CBS', 'MSA', 'DLB', 'AD', 'FTD', "VaD", "VaPD"
+                    'Population Control', 'Undetermined-MCI', 'Undetermined-Dementia', 'Mix', 'Other']
+
 
     allowed_samples = ['Blood (EDTA)', 'Blood (ACD)', 'Blood', 'DNA', 'DNA from Brain',
                         'DNA from blood', 'DNA from FFPE', 'RNA', 'Saliva',
