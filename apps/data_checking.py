@@ -81,6 +81,8 @@ def app():
         
         if choice=='For Fulgent':
             required_cols = required_cols + fulgent_cols
+        if choice=='For NIH':
+            required_cols = required_cols + ['Plate_name', 'Plate_position']
          
         missing_cols = np.setdiff1d(cols, df.columns)
         if len(missing_cols)>0:
