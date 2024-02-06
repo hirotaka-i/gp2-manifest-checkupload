@@ -1,6 +1,7 @@
 import streamlit as st
 from multiapp import MultiApp
 from apps import home, data_checking, clinical_qc, uploadSystem, data_visualization
+# https://gp2qc-uploadvis-wskofeynza-uc.a.run.app/
 
 st.set_page_config(layout="wide")
 
