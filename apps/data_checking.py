@@ -75,6 +75,7 @@ def app():
     allowed_race=["American Indian or Alaska Native", "Asian", "White", "Black or African American",
             "Multi-racial", "Native Hawaiian or Other Pacific Islander", "Other", "Unknown", "Not Reported"]
     allowed_family_history = ["Yes", "No", "Not Reported"]
+    allowed_region_codes=["ABW","AFG","AGO","AIA","ALA","ALB","AND","ARE","ARG","ARM","ASM","ATA","ATF","ATG","AUS","AUT","AZE","BDI","BEL","BEN","BES","BFA","BGD","BGR","BHR","BHS","BIH","BLM","BLR","BLZ","BMU","BOL","BRA","BRB","BRN","BTN","BVT","BWA","CAF","CAN","CCK","CHE","CHL","CHN","CIV","CMR","COD","COG","COK","COL","COM","CPV","CRI","CUB","CUW","CXR","CYM","CYP","CZE","DEU","DJI","DMA","DNK","DOM","DZA","ECU","EGY","ERI","ESH","ESP","EST","ETH","FIN","FJI","FLK","FRA","FRO","FSM","GAB","GBR","GEO","GGY","GHA","GIB","GIN","GLP","GMB","GNB","GNQ","GRC","GRD","GRL","GTM","GUF","GUM","GUY","HKG","HMD","HND","HRV","HTI","HUN","IDN","IMN","IND","IOT","IRL","IRN","IRQ","ISL","ISR","ITA","JAM","JEY","JOR","JPN","KAZ","KEN","KGZ","KHM","KIR","KNA","KOR","KWT","LAO","LBN","LBR","LBY","LCA","LIE","LKA","LSO","LTU","LUX","LVA","MAC","MAF","MAR","MCO","MDA","MDG","MDV","MEX","MHL","MKD","MLI","MLT","MMR","MNE","MNG","MNP","MOZ","MRT","MSR","MTQ","MUS","MWI","MYS","MYT","NAM","NCL","NER","NFK","NGA","NIC","NIU","NLD","NOR","NPL","NRU","NZL","OMN","PAK","PAN","PCN","PER","PHL","PLW","PNG","POL","PRI","PRK","PRT","PRY","PSE","PYF","QAT","REU","ROU","RUS","RWA","SAU","SDN","SEN","SGP","SGS","SHN","SJM","SLB","SLE","SLV","SMR","SOM","SPM","SRB","SSD","STP","SUR","SVK","SVN","SWE","SWZ","SXM","SYC","SYR","TCA","TCD","TGO","THA","TJK","TKL","TKM","TLS","TON","TTO","TUN","TUR","TUV","TWN","TZA","UGA","UKR","UMI","URY","USA","UZB","VAT","VCT","VEN","VGB","VIR","VNM","VUT","WLF","WSM","YEM","ZAF","ZMB","ZWE"]
 
     if data_file is not None:
         jumptwice()
@@ -322,6 +323,11 @@ def app():
         st.write(df['SampleRepNo'].value_counts())
 
         jumptwice()
+        # study_arm x study_type
+        st.text('Count per study_arm')
+        st.write(df.groupby(['study_arm', 'study_type']).size().rename('N'))
+
+        jumptwice()
         # diagnosis --> Phenotype
         st.subheader('Create Phenotype column')
         st.text('Show study arm versus diagnosis')
@@ -432,7 +438,7 @@ def app():
         st.subheader('Create "race_for_qc"')
         st.text('Count per race (Not Reported = missing)')
         df['race_for_qc'] = df.race.fillna('Not Reported')
-        st.write(df.race_for_qc.astype('str').value_counts())
+        st.write(df.race.fillna('Not Reported').astype('str').value_counts())
 
         jumptwice()
         races = df.race.dropna().unique()
@@ -447,20 +453,24 @@ def app():
             race_index=allowed_race.index(race) if race in allowed_race else None
             mapdic[race]=st.selectbox(f"[{race}]: For QC purppose, select the best match from the followings",
                                       options=allowed_race, index=race_index, key=count_widget)
-        df['race_for_qc'] = df.race_for_qc.map(mapdic)
-
+        df['race_for_qc'] = df.race_for_qc.map(mapdic).fillna('Not Assigned')
 
         # cross-tabulation
         st.text('=== race_for_qc X race ===')
         dft = df.copy()
-        dft['race'] = dft.race.fillna('_Missing')
+        dft['race'] = dft.race.fillna('Not Reported')
         xtab = dft.pivot_table(index='race_for_qc', columns='race', margins=True,
                                 values='sample_id', aggfunc='count', fill_value=0)
         st.write(xtab)
 
+        if 'Not Assigned' in df.race_for_qc.unique():
+            st.error('Please assign the race for all the samples')
+            st.stop()
+
         race_conf = st.checkbox('Confirm race_for_qc?')
         if race_conf:
             st.info('Thank you')
+
 
 
         # family history for qc
@@ -468,7 +478,7 @@ def app():
         st.subheader('Create "family_history_for_qc"')
         st.text('Count per family_history category (Not Reported = missing)')
         df['family_history_for_qc'] = df.family_history.fillna('Not Reported')
-        st.write(df.family_history_for_qc.astype('str').value_counts())
+        st.write(df.family_history.fillna('Not Reported').astype('str').value_counts())
         family_historys = df.family_history.dropna().unique()
         nmiss = sum(pd.isna(df.family_history))
 
@@ -510,7 +520,7 @@ def app():
         st.text('Count per region (Not Reported = missing)')
         df['region_for_qc'] = df.region.fillna('Not Reported')
         st.write(df.region_for_qc.astype('str').value_counts())
-        regions = df.region.dropna().unique()
+        regions = df.region_for_qc.dropna().unique()
         nmiss = sum(pd.isna(df.region))
 
         if nmiss>0:
@@ -520,13 +530,15 @@ def app():
 
         if len(regions)>0:
             st.text('if ISO 3166-3 is available for the region, please provide')
-            def_code=st.text_input('You can set the default ISO 3166-3 here', key='iso3166', value='')
             st.write('https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3')
+            def_code=st.text_input('You can set the default ISO 3166-3 here', key='iso3166', value='',  max_chars=3)
             n_rgs = st.columns(len(regions))
             for i, x in enumerate(n_rgs):
                 with x:
                     region = regions[i]
-                    region_to_map = x.text_input(f'[{region}] in 3 LETTERS', value=def_code, key=region)
+                    region_index=region if region in allowed_region_codes else def_code
+                    region_to_map = x.text_input(f'[{region}] in 3 LETTERS', value=region_index, key=region, 
+                                                 max_chars=3)
                     if len(region_to_map)>1:
                         mapdic[region]=region_to_map
         df['region_for_qc'] = df.region_for_qc.map(mapdic).fillna('Not Assigned')
@@ -534,10 +546,18 @@ def app():
         # cross-tabulation
         st.text('=== region X  region_for_qc ===')
         dft = df.copy()
-        dft['region'] = dft.region.fillna('_Missing')
+        dft['region'] = dft.region.fillna('Not Reported')
         xtab = dft.pivot_table(columns='region_for_qc', index='region', margins=True,
                                 values='sample_id', aggfunc='count', fill_value=0)
         st.table(xtab)
+
+        region_not_well_assigned=np.setdiff1d(df.region_for_qc.unique(), allowed_region_codes)
+
+        if len(region_not_well_assigned)>0:
+            st.error('Please make sure all samples assigned a 3-digit region code. If not available, please assign the 3-digit code for the principle research site.')
+            st.write(f'Need reviews: {region_not_well_assigned}')
+            st.stop()
+
 
         rg_conf = st.checkbox('Confirm region_for_qc?')
         if rg_conf:
