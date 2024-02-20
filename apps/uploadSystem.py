@@ -11,10 +11,8 @@ except Exception as e:
     print("Some modules are not installed {}".format(e))
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "secrets/secrets.json"
-#os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/secrets/secrets.json"
 
 def app():
-    #load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
     load_css("apps/css/css.css")
     st.markdown('<p class="big-font"> GP2 Sample Uploader System</p>', unsafe_allow_html=True)
 

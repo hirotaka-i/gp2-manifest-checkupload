@@ -19,6 +19,7 @@ except Exception as e:
 
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "secrets/secrets.json"
+
 def jumptwice():
     st.write("##")
     st.write("##")
