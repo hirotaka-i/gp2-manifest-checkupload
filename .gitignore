@@ -8,4 +8,6 @@ utils/__pycache__/
 ARCHIVE/
 DEBUG/
 IDEAS
-
+.venv/
+__pycache__
+apps/__pycache__
