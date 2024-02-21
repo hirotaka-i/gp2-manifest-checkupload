@@ -39,72 +39,105 @@ def app():
     st.markdown('<p class="medium-font"> Once the QC process completes, please move to the Upload tab of the app to store your sample manifest </p>', unsafe_allow_html=True)
 
     data_file = st.sidebar.file_uploader("Upload Your Sample manifest (CSV/XLSX)", type=['xlsx', 'csv'])
-    menu = ["For Fulgent", "For NIH", "For LGC", "For UCL", "For DZNE"]
     studycode = get_studycode()
-    choice = st.sidebar.selectbox("Genotyping site",menu)
+    choice = st.sidebar.selectbox("Genotyping site", 
+                                  ["For Fulgent", "For NIH", "For LGC", "For UCL", "For DZNE"],
+                                  index=None)
 
-    ph_conf=''
-    sex_conf=''
+    ph_conf = ''
+    sex_conf = ''
     race_conf = ''
-    fh_conf=''
+    fh_conf = ''
 
+    # Columns 
     cols = ['study','study_type', 'sample_id', 'sample_type',
             'DNA_volume', 'DNA_conc', 'r260_280',
             'Plate_name', 'Plate_position', 'clinical_id',
             'study_arm', 'diagnosis', 'sex', 'race',
             'age', 'age_of_onset', 'age_at_diagnosis', 'age_at_death', 'age_at_last_follow_up',
             'family_history', 'region', 'comment', 'alternative_id1', 'alternative_id2']
-    
-    required_cols = ['study', 'study_type', 'sample_id', 'sample_type', 'clinical_id', 'study_arm', 'diagnosis', 'sex']
-
-    # data dictionary
+    required_cols = ['study', 'study_type', 'sample_id', 'sample_type', 'clinical_id', 
+                     'study_arm', 'diagnosis', 'sex']
     fulgent_cols = ['DNA_volume', 'DNA_conc', 'Plate_name', 'Plate_position']
-
+    
+    # Column values
     gptwo_phenos = ['PD', 'Control', 'Prodromal',
                     'PSP', 'CBD/CBS', 'MSA', 'DLB', 'AD', 'FTD', "VaD", "VaPD"
-                    'Population Control', 'Undetermined-MCI', 'Undetermined-Dementia', 'Mix', 'Other']
-
-
+                    'Population Control', 'Undetermined-MCI', 'Undetermined-Dementia', 'Mix', 'Other']    
     allowed_samples = ['Blood (EDTA)', 'Blood (ACD)', 'Blood', 'DNA', 'DNA from Brain',
                         'DNA from blood', 'DNA from FFPE', 'RNA', 'Saliva',
                         'Buccal Swab', 'T-25 Flasks (Amniotic)', 'FFPE Slide',
                         'FFPE Block', 'Fresh tissue', 'Frozen tissue',
                         'Bone Marrow Aspirate', 'Whole BMA', 'CD3+ BMA', 'Other']
-    #allowed_samples_strp = [samptype.strip().replace(" ", "") for samptype in allowed_samples]
-    allowed_studyType = ["Case(/Control)", "Prodromal", "Genetically Enriched", "Population Cohort", "Brain Bank"]
-    allowed_sex = ["Male", "Female", "Other/Unknown/Not Reported"]
-    allowed_race=["American Indian or Alaska Native", "Asian", "White", "Black or African American",
-            "Multi-racial", "Native Hawaiian or Other Pacific Islander", "Other", "Unknown", "Not Reported"]
-    allowed_family_history = ["Yes", "No", "Not Reported"]
-    allowed_region_codes=["ABW","AFG","AGO","AIA","ALA","ALB","AND","ARE","ARG","ARM","ASM","ATA","ATF","ATG","AUS","AUT","AZE","BDI","BEL","BEN","BES","BFA","BGD","BGR","BHR","BHS","BIH","BLM","BLR","BLZ","BMU","BOL","BRA","BRB","BRN","BTN","BVT","BWA","CAF","CAN","CCK","CHE","CHL","CHN","CIV","CMR","COD","COG","COK","COL","COM","CPV","CRI","CUB","CUW","CXR","CYM","CYP","CZE","DEU","DJI","DMA","DNK","DOM","DZA","ECU","EGY","ERI","ESH","ESP","EST","ETH","FIN","FJI","FLK","FRA","FRO","FSM","GAB","GBR","GEO","GGY","GHA","GIB","GIN","GLP","GMB","GNB","GNQ","GRC","GRD","GRL","GTM","GUF","GUM","GUY","HKG","HMD","HND","HRV","HTI","HUN","IDN","IMN","IND","IOT","IRL","IRN","IRQ","ISL","ISR","ITA","JAM","JEY","JOR","JPN","KAZ","KEN","KGZ","KHM","KIR","KNA","KOR","KWT","LAO","LBN","LBR","LBY","LCA","LIE","LKA","LSO","LTU","LUX","LVA","MAC","MAF","MAR","MCO","MDA","MDG","MDV","MEX","MHL","MKD","MLI","MLT","MMR","MNE","MNG","MNP","MOZ","MRT","MSR","MTQ","MUS","MWI","MYS","MYT","NAM","NCL","NER","NFK","NGA","NIC","NIU","NLD","NOR","NPL","NRU","NZL","OMN","PAK","PAN","PCN","PER","PHL","PLW","PNG","POL","PRI","PRK","PRT","PRY","PSE","PYF","QAT","REU","ROU","RUS","RWA","SAU","SDN","SEN","SGP","SGS","SHN","SJM","SLB","SLE","SLV","SMR","SOM","SPM","SRB","SSD","STP","SUR","SVK","SVN","SWE","SWZ","SXM","SYC","SYR","TCA","TCD","TGO","THA","TJK","TKL","TKM","TLS","TON","TTO","TUN","TUR","TUV","TWN","TZA","UGA","UKR","UMI","URY","USA","UZB","VAT","VCT","VEN","VGB","VIR","VNM","VUT","WLF","WSM","YEM","ZAF","ZMB","ZWE"]
+    allowed_studyType = ['Case(/Control)', 'Prodromal', 'Genetically Enriched', 'Population Cohort', 'Brain Bank']
+    allowed_sex = ['Male', 'Female', 'Other/Unknown/Not Reported']
+    allowed_race=['American Indian or Alaska Native', 'Asian', 'White', 'Black or African American',
+                  'Multi-racial', 'Native Hawaiian or Other Pacific Islander', 'Other', 'Unknown', 'Not Reported']
+    allowed_family_history = ['Yes', 'No', 'Not Reported']
+    allowed_region_codes=["ABW","AFG","AGO","AIA","ALA","ALB","AND","ARE","ARG","ARM","ASM","ATA","ATF","ATG","AUS","AUT","AZE",
+                          "BDI","BEL","BEN","BES","BFA","BGD","BGR","BHR","BHS","BIH","BLM","BLR","BLZ","BMU","BOL","BRA","BRB",
+                          "BRN","BTN","BVT","BWA","CAF","CAN","CCK","CHE","CHL","CHN","CIV","CMR","COD","COG","COK","COL","COM",
+                          "CPV","CRI","CUB","CUW","CXR","CYM","CYP","CZE","DEU","DJI","DMA","DNK","DOM","DZA","ECU","EGY","ERI",
+                          "ESH","ESP","EST","ETH","FIN","FJI","FLK","FRA","FRO","FSM","GAB","GBR","GEO","GGY","GHA","GIB","GIN",
+                          "GLP","GMB","GNB","GNQ","GRC","GRD","GRL","GTM","GUF","GUM","GUY","HKG","HMD","HND","HRV","HTI","HUN",
+                          "IDN","IMN","IND","IOT","IRL","IRN","IRQ","ISL","ISR","ITA","JAM","JEY","JOR","JPN","KAZ","KEN","KGZ",
+                          "KHM","KIR","KNA","KOR","KWT","LAO","LBN","LBR","LBY","LCA","LIE","LKA","LSO","LTU","LUX","LVA","MAC",
+                          "MAF","MAR","MCO","MDA","MDG","MDV","MEX","MHL","MKD","MLI","MLT","MMR","MNE","MNG","MNP","MOZ","MRT",
+                          "MSR","MTQ","MUS","MWI","MYS","MYT","NAM","NCL","NER","NFK","NGA","NIC","NIU","NLD","NOR","NPL","NRU",
+                          "NZL","OMN","PAK","PAN","PCN","PER","PHL","PLW","PNG","POL","PRI","PRK","PRT","PRY","PSE","PYF","QAT",
+                          "REU","ROU","RUS","RWA","SAU","SDN","SEN","SGP","SGS","SHN","SJM","SLB","SLE","SLV","SMR","SOM","SPM",
+                          "SRB","SSD","STP","SUR","SVK","SVN","SWE","SWZ","SXM","SYC","SYR","TCA","TCD","TGO","THA","TJK","TKL",
+                          "TKM","TLS","TON","TTO","TUN","TUR","TUV","TWN","TZA","UGA","UKR","UMI","URY","USA","UZB","VAT","VCT",
+                          "VEN","VGB","VIR","VNM","VUT","WLF","WSM","YEM","ZAF","ZMB","ZWE"]
 
     if data_file is not None:
+        
+        # Read the data
         jumptwice()
         st.markdown('<p class="big-font">Sample manifest QC </p>', unsafe_allow_html=True)
         df = read_file(data_file)
         df.index = df.index +2
         original_order = df.sample_id.to_list()
         jumptwice()
+              
+        
+        st.subheader("Data columns and sample/clinical IDs check")
+
+        # Select the genotyping site
+        jumptwice()
+        st.markdown("Adding **Genotyping site** column ")
+        if choice==None:
+            st.markdown("**Please, choose a Genotyping site on the left bar before starting the columns checks**")
+            st.stop()
+        else:
+            st.markdown("**Genotyping_site** successfully added to the sample manifest")
         
         if choice=='For Fulgent':
             required_cols = required_cols + fulgent_cols
         if choice=='For NIH':
             required_cols = required_cols + ['Plate_name', 'Plate_position']
-         
+        
+
+        # Check expected columns are present
         missing_cols = np.setdiff1d(cols, df.columns)
         if len(missing_cols)>0:
             st.error(f'{missing_cols} are missing. Please use the template sheet')
             st.stop()
         elif df.shape[1] != len(cols):
             st.error('We have detected more unexpected columns in the input sample manifest')
-            st.error('Pleas sure you are using the template and only providing the columns we as in the template. Thank you')
+            st.error('Please, make sure you are using the template and only providing the columns present in the template Thank you')
             st.error('Please, try and QC again once this has been sorted')
             not_required_cols = np.setdiff1d(df.columns, cols)
             st.error(f'{not_required_cols} should not be in the file. Please use the template sheet')
             st.stop()
         else:
-            st.text('sample manifest columns check --> OK')
+            st.markdown('sample manifest **columns** check --> OK')
             df_non_miss_check = df[required_cols].copy()
+
+
+        # Create genotyping site variable
+        df['Genotyping_site'] = choice.replace('For ', '')
+
 
         # Check required cols have non na
         df[['sample_id','clinical_id']] = df[['sample_id','clinical_id']].replace('nan', np.nan) # We should detect any weird nas now
@@ -114,14 +147,27 @@ def app():
             st.write(df_non_miss_check[df_non_miss_check.isna().sum(1)>0].head(30))
             st.stop()
         else:
-            st.text('Check missing data in the required fields --> OK')
+            st.text('Check no missing data in the required fields --> OK')
         
+
+        # Transform data type of key columns
         df[['sample_id', 'clinical_id']] = df[['sample_id','clinical_id']].astype(str)
-        # clinical id many dups check
+        
+
+        # Check clinical_id data
+        jumptwice()
         if df.groupby(['clinical_id']).size().sort_values(ascending=False)[0] > 3:
             detect_multiple_clindups(df)
-        
-        # Sample id dup checks
+        dup_ID_this=df.loc[df.duplicated(subset=['clinical_id']), 'clinical_id'].unique()
+        if len(dup_ID_this)>0:            
+            st.warning(f'Duplicated clinical_id in the manifest: {dup_ID_this}')
+            st.warning(f'If this is not expected, please fix it and re upload your sample manifest')
+        else:
+            st.success('clinical_id in the manifest are all new. No duplication/replication.')
+
+
+        # Chceck sample_id data
+        jumptwice()
         sample_id_dup = df.sample_id[df.sample_id.duplicated()].unique()
         # sample dup check
         if len(sample_id_dup)>0:
@@ -129,20 +175,24 @@ def app():
             st.error(f'Unique sample IDs are required (clinical IDs can be duplicated if replicated)')
             st.stop()
         else:
-            st.text(f'Check sample_id duplicaiton --> OK')
-            st.text(f'N of sample_id (entries):{df.shape[0]}')
-            st.text(f'N of unique clinical_id : {len(df.clinical_id.unique())}')
+            st.markdown(f'Check there are no **sample_id duplicates** --> OK')
+            st.markdown(f'**N** of sample_id (entries):{df.shape[0]}')
+            st.markdown(f'**N** of unique clinical_id : {len(df.clinical_id.unique())}')
+
 
         # sample type check
-        st.text('sample_type check')
+        jumptwice()
+        st.markdown("**sample_type** check")
         st.write(df.sample_type.astype('str').value_counts())
         not_allowed = np.setdiff1d(df.sample_type.unique(), allowed_samples)
         if len(not_allowed)>0:
             #sample_type_fix(df, allowed_samples)
             sample_type_fix(df = df, allowed_samples = allowed_samples, col = 'sample_type')
 
-        # study type check
-        st.text('study_type check')
+
+        # Study_type check
+        jumptwice()
+        st.markdown("**study_type** and **study_arm** check")
         st.write(df.groupby(['study_arm', 'study_type']).size().rename('N'))
         st.write(df.pivot_table(index='study_arm', columns='study_type',
                                  values='sample_id', aggfunc='count', margins=True))
@@ -150,16 +200,25 @@ def app():
         if len(not_allowed)>0:
             sample_type_fix(df = df, allowed_samples = allowed_studyType, col = 'study_type')
 
-        # GENERATE GP2 IDs #
+
+        # Create study variable
+        jumptwice()
+        st.markdown("Adding **study** column")
+        df['study'] = studycode
+        if df['study'].unique() == None:
+            st.markdown("**Please, choose a study code on the left bar before assigning GP2 IDs**")
+            st.stop()
+        else:
+            st.markdown("**Study** successfully added to the sample manifest")
+        
+
+        # GP2 IDs assignment
         jumptwice()
         st.subheader('GP2 IDs assignment...')
-        #studynames = list(df['study'].unique())
         if st.session_state['master_get'] == None: # TO ONLY RUN ONCE
             studynames = list(df['study'].unique())
-            #ids_tracker = generategp2ids.master_key(studies = studynames)
             ids_tracker = generategp2ids.master_keyv2(studies = studynames)
-           
-            # FOR NOW, WE ARE NOT USING THE FUNCTION TO REMOVE IDS FROM THE MASTER JSON
+            
             # # Check if this is another QC run of a sample manifest
             all_sids = []
             for v in ids_tracker.values():
@@ -175,7 +234,6 @@ def app():
             study_subsets = []
             log_new = []
             df['GP2sampleID'] = None
-            # GP2 ID ASSIGNMENT CODE BLOCK
             for study in studynames:
                 st.write(f"Getting GP2IDs for {study} samples")
                 df_subset = df[df.study==study].copy()
@@ -268,14 +326,11 @@ def app():
                     ids_log = df_update_master.groupby('study').apply(lambda x: dict(zip(x['sample_id'],
                                                                                     x['master_value']))).to_dict()
 
-                #generategp2ids.update_masterids(ids_log, study_tracker) # THIS WILL BE UPDATED ONCE THE USET CONFIRMS THE QC ( AT THE END)
-
                 #if st.session_state['master_get'] == None:
                 if (isinstance(st.session_state['all_ids'], list)):
                     st.session_state['all_ids'].append( [ids_log, study_tracker] )
                 if st.session_state['all_ids'] == None:
                     st.session_state['all_ids'] = [ [ids_log, study_tracker] ]
-
 
             # OUT OF FOR LOOP // END OF GP2 IDS ASSIGNMENT. LET'S RESUME df.
             df = pd.concat(study_subsets, axis = 0)
@@ -292,8 +347,6 @@ def app():
                 allnew.style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
                 #allnew.style.set_properties(**{"background-color": "brown", "color": "lawngreen"})
                 )
-            #else:
-            #    aggridPlotter(df)
             st.session_state['df_finalids'] = df
             st.session_state['master_get'] = 'DONE'
 
@@ -301,38 +354,33 @@ def app():
             df = st.session_state['df_finalids']
 
 
-        # Add Genotyping site and study cols
-        df['Genotyping_site'] = choice.replace('For ', '')
-        #df['study'] = studycode TO DISCUSS WITH HIROTAKA .... ISSUE WITH STUDY WITH MULTIPLE SUBSTUDIES
-
+        # Plot the data
         aggridPlotter(df)
-        # duplicated clinical_id in this manifest
-        dup_ID_this=df.loc[df.duplicated(subset=['clinical_id']), 'clinical_id'].unique()
-        if len(dup_ID_this)>0:            
-            st.warning(f'Duplicated clinical_id in the manifest: {dup_ID_this}')
-        else:
-            st.success('clinical_id in the manifest are all new. No duplication/replication.')
         
-        # previously submitted clinical_id
+
+        # Highlight clinical IDs that were submitted on previous sample manifest
         dup_ID_all=df.loc[df.SampleRepNo!='s1', 'clinical_id'].unique()
         dup_ID_previous = np.setdiff1d(dup_ID_all, dup_ID_this)
         if len(dup_ID_previous)>0:
             st.warning(f'clinical_id previously submitted: {dup_ID_previous}')
+            st.warning('If this does not look right, please fix it in your sample manifest, and come back to the app')
         
+
         # Count by SampleRepNo
-        st.text('Count by SampleRepNo: if all new, all s1')
+        jumptwice()
+        st.markdown('Count by **SampleRepNo**: if all clinical IDs are new, all s1')
+        st.markdown('Please refer to the dictionary to understand what **SampleRepNo** stands for')
         st.write(df['SampleRepNo'].value_counts())
 
-        jumptwice()
-        # study_arm x study_type
-        st.text('Count per study_arm')
-        st.write(df.groupby(['study_arm', 'study_type']).size().rename('N'))
 
+
+        ########################
+        ### PHENOTYPE FOR QC ###
+        ########################
+        # Summarise the data
         jumptwice()
-        # diagnosis --> Phenotype
-        st.subheader('Create Phenotype column')
+        st.subheader('Create Phenotype columns')
         st.text('Show study arm versus diagnosis')
-        # Add xtab for diagnosis vs study arm
         xtab = df.pivot_table(index='study_arm', columns='diagnosis', margins=True,
                               values='sample_id', aggfunc='count', fill_value=0)
         st.write(xtab)
@@ -341,6 +389,7 @@ def app():
         st.text('Count per diagnosis')
         st.write(df.diagnosis.astype('str').value_counts())
 
+        # Do the user - gp2 standards mapping
         jumptwice()
         diag = df.diagnosis.dropna().unique()
         n_diag = st.columns(len(diag))
@@ -350,54 +399,51 @@ def app():
             count_widget += 1
             with x:
                 mydiag = diag[i]
-
-                # when mydiag in the gptwo_phenos, then give the index for the botton otherwise, none
-                diag_index= gptwo_phenos.index(mydiag) if mydiag in gptwo_phenos else None
-
+                diag_index = gptwo_phenos.index(mydiag) if mydiag in gptwo_phenos else None
                 phenotypes[mydiag]=x.selectbox(f"[{mydiag}]: For QC, please pick the closest Phenotype",
-                                               gptwo_phenos,
-                                               index=diag_index,
+                                               options = gptwo_phenos,
+                                               index = diag_index,
                                                key=count_widget)
+                
+        df['GP2_phenotype'] = df.diagnosis.map(phenotypes).fillna('Not Assigned') # diagnosis and phenotype relationships are 1:1
+        if any(value is not None for value in phenotypes.values()):
+            st.text('===  diagnosis x GP2_phenotype ===')
+            xtab = df.pivot_table(index='diagnosis', columns='GP2_phenotype', margins=True,
+                                  values='sample_id', aggfunc='count', fill_value=0)
+            st.write(xtab)
+            jumptwice()
+            st.text('=== study_arm x study_type x diagnosis x GP2_phenotype===')
+            pheno_tab=df.groupby(['study_arm', 'study_type', 'diagnosis', 'GP2_phenotype']).size().rename('N').reset_index()
+            st.table(pheno_tab)
 
-        # diagnosis and phenotype relationships are 1:1
-        df['GP2_phenotype'] = df.diagnosis.map(phenotypes)
-        # cross-tabulation of diagnosis and Phenotype
-        st.text('===  diagnosis x GP2_phenotype===')
-        xtab = df.pivot_table(columns='GP2_phenotype', index='diagnosis', margins=True,
-                              values='sample_id', aggfunc='count', fill_value=0)
-        st.write(xtab)
-
-        st.text('=== study_arm x study_type x diagnosis x GP2_phenotype===')
-        pheno_tab=df.groupby(['study_arm', 'study_type', 'diagnosis', 'GP2_phenotype']).size().rename('N').reset_index()
-        st.table(pheno_tab)
-
+        # Confirm mapping looks good
         ph_conf = st.checkbox('Confirm Phenotype?')
         if ph_conf:
-            st.info('Thank you')
+            if 'Not Assigned' in df.GP2_phenotype.unique():
+                st.error('Please assign the phenotype for all the samples')
+                st.stop()
+            else:
+                st.info('Thank you')
 
-        #phenoqc_other = '|'.join(['Prodromal', 'PSP', 'CBS', 'MSA', 'DLB', 'AD', 'FTD', 'VSC',
-        #                          'Undetermined-MCI', 'Undetermined-Dementia', 'MIX'])
-        #df['phenotype_for_qc'] = df['GP2_phenotype'].str.replace(" ", "").str.replace(phenoqc_other, 'Other')
-        # Apply the function to the DataFrame column
+        # Derive phenotype for QC variable
         df['GP2_phenotype_for_qc'] = df['GP2_phenotype'].apply(lambda pheno: pheno if pheno in ['PD','Control'] else 'Other')
         all_studytype = df['study_type'].unique().tolist()
         if 'Genetically Enriched' in all_studytype:
-            st.write("IN")
             matching_rows = df[df['study_type'] == 'Genetically Enriched']
             df.loc[matching_rows.index, 'GP2_phenotype_for_qc'] = 'Other'            
 
-        #st.write(all_studytype)
-        #st.dataframe(df)
-        #aggridPlotter(df)
-        #df['study_type'].
-        #df['GP2_phenotype_for_qc'] = 
 
-        # sex for qc
+
+        ##################
+        ### SEX FOR QC ###
+        ##################
+        # Summarise the data
         jumptwice()
         st.subheader('Create "biological_sex_for_qc"')
         st.text('Count per sex group')
         st.write(df.sex.astype('str').value_counts())
 
+        # Do the user - GP2 standards mapping
         jumptwice()
         sexes=df.sex.dropna().unique()
         n_sexes = st.columns(len(sexes))
@@ -406,75 +452,88 @@ def app():
             count_widget += 1
             with x:
                 sex = sexes[i]
-
-                # when mydiag in the gptwo_phenos, then give the index for the botton otherwise, none
-                sex_index= allowed_sex.index(sex) if sex in allowed_sex else None
-
-                mapdic[sex]=x.selectbox(f"[{sex}]: For QC, please pick a word below",
-                                        allowed_sex, 
+                sex_index = allowed_sex.index(sex) if sex in allowed_sex else None
+                mapdic[sex] = x.selectbox(f"[{sex}]: For QC, please pick a word below",
+                                        options=allowed_sex, 
                                         index=sex_index, 
                                         key=count_widget)
-        df['biological_sex_for_qc'] = df.sex.replace(mapdic)
+        
+        df['biological_sex_for_qc'] = df['sex'].map(mapdic).fillna('Not Assigned')
 
-        # cross-tabulation
         st.text('=== biological_sex_for_qc x sex ===')
-        xtab = df.pivot_table(index='biological_sex_for_qc', columns='sex', margins=True,
-                                values='sample_id', aggfunc='count', fill_value=0)
-        st.write(xtab)
+        if any(value is not None for value in mapdic.values()):
+            xtab = df.pivot_table(index='biological_sex_for_qc', columns='sex', margins=True,
+                                    values='sample_id', aggfunc='count', fill_value=0)
+            st.write(xtab)
 
+        # Confirm mapping looks good
         sex_conf = st.checkbox('Confirm biological_sex_for_qc?')
         if sex_conf:
-            st.info('Thank you')
-
             if 'Other/Unknown/Not Reported' in df['biological_sex_for_qc'].unique():
                 sex_count = df['biological_sex_for_qc'].value_counts()
                 unknown_rate = sex_count['Other/Unknown/Not Reported'] / df.shape[0]
                 if unknown_rate > 0.01:
-                    st.text("The number of samples with \"Other/Unknown/Not Reported\" sex category is higher than 1% ")
-                    st.warning("Please check that you selected the right sex values for your samples above ")
+                    st.error("The number of samples with \"Other/Unknown/Not Reported\" sex category is higher than 1% ")
+                    st.error("Please check that you selected the right sex values for your samples above ")
+                    st.stop()
+            elif 'Not Assigned' in df.biological_sex_for_qc.unique():
+                st.error('Please assign the sex for all the samples')
+                st.stop()
+            else:
+                st.info('Thank you')
 
 
-        # race for qc
+
+        ###################
+        ### RACE FOR QC ###
+        ###################
+        # Summarise the data
         jumptwice()
         st.subheader('Create "race_for_qc"')
         st.text('Count per race (Not Reported = missing)')
         df['race_for_qc'] = df.race.fillna('Not Reported')
         st.write(df.race.fillna('Not Reported').astype('str').value_counts())
 
+        # Do the user - GP2 standards mapping
         jumptwice()
         races = df.race.dropna().unique()
         nmiss = sum(pd.isna(df.race))
-
         if nmiss>0:
             st.text(f'{nmiss} entries missing race...')
-
         mapdic = {'Not Reported':'Not Reported'}
         for race in races:
             count_widget += 1
             race_index=allowed_race.index(race) if race in allowed_race else None
             mapdic[race]=st.selectbox(f"[{race}]: For QC purppose, select the best match from the followings",
-                                      options=allowed_race, index=race_index, key=count_widget)
+                                      options=allowed_race, 
+                                      index=race_index, 
+                                      key=count_widget)
+        
         df['race_for_qc'] = df.race_for_qc.map(mapdic).fillna('Not Assigned')
 
-        # cross-tabulation
         st.text('=== race_for_qc X race ===')
-        dft = df.copy()
-        dft['race'] = dft.race.fillna('Not Reported')
-        xtab = dft.pivot_table(index='race_for_qc', columns='race', margins=True,
+        if any(value is not None for value in mapdic.values()):
+            dft = df.copy()
+            dft['race'] = dft.race.fillna('Not Reported')
+            xtab = dft.pivot_table(index='race_for_qc', columns='race', margins=True,
                                 values='sample_id', aggfunc='count', fill_value=0)
-        st.write(xtab)
+            st.write(xtab)
 
-        if 'Not Assigned' in df.race_for_qc.unique():
-            st.error('Please assign the race for all the samples')
-            st.stop()
-
+        # Confirm mapping looks good
         race_conf = st.checkbox('Confirm race_for_qc?')
         if race_conf:
-            st.info('Thank you')
+            if 'Not Assigned' in df.race_for_qc.unique():
+                st.error('Please assign the race for all the samples')
+                st.stop()
+            else:
+                st.info('Thank you')
 
 
 
-        # family history for qc
+        #################
+        ### FH FOR QC ###
+        #################
+        # Summarise the data
         jumptwice()
         st.subheader('Create "family_history_for_qc"')
         st.text('Count per family_history category (Not Reported = missing)')
@@ -483,11 +542,12 @@ def app():
         family_historys = df.family_history.dropna().unique()
         nmiss = sum(pd.isna(df.family_history))
 
+        # Do the user - GP2 standards mapping
+        jumptwice()
         if nmiss>0:
             st.text(f'{nmiss} entries missing family_history')
         mapdic = {'Not Reported':'Not Reported'}
-        jumptwice()
-
+        
         if len(family_historys)>0:
             n_fhs = st.columns(len(family_historys))
             for i, x in enumerate(n_fhs):
@@ -495,27 +555,36 @@ def app():
                 with x:
                     fh = family_historys[i]
                     fh_index=allowed_family_history.index(fh) if fh in allowed_family_history else None
-                    mapdic[fh]=x.selectbox(f'[{fh}]: For QC, any family history?',
+                    mapdic[fh]=x.selectbox(f'[{fh}]: For QC, family history',
                                            options=allowed_family_history, 
                                            index=fh_index,
                                            key=count_widget)
+        
         df['family_history_for_qc'] = df.family_history_for_qc.map(mapdic).fillna('Not Assigned')
 
-
-        # cross-tabulation
         st.text('=== family_history_for_qc X family_history ===')
-        dft = df.copy()
-        dft['family_history'] = dft.family_history.fillna('_Missing')
-        xtab = dft.pivot_table(index='family_history_for_qc', columns='family_history', margins=True,
-                                values='sample_id', aggfunc='count', fill_value=0)
-        st.write(xtab)
+        if any(value is not None for value in mapdic.values()):
+            dft = df.copy()
+            dft['family_history'] = dft.family_history.fillna('_Missing')
+            xtab = dft.pivot_table(index='family_history_for_qc', columns='family_history', margins=True,
+                                    values='sample_id', aggfunc='count', fill_value=0)
+            st.write(xtab)
 
+        # Confirm mapping looks good
         fh_conf = st.checkbox('Confirm family_history_for_qc?')
         if fh_conf:
-            st.info('Thank you')
+            if 'Not Assigned' in df.family_history_for_qc.unique():
+                st.error('Please assign the family for all the samples')
+                st.stop()
+            else:
+                st.info('Thank you')
 
 
-        # Region for qc
+
+        #####################
+        ### REGION FOR QC ###
+        #####################
+        # Summarise the data
         jumptwice()
         st.subheader('Create "region_for_qc"')
         st.text('Count per region (Not Reported = missing)')
@@ -524,52 +593,56 @@ def app():
         regions = df.region_for_qc.dropna().unique()
         nmiss = sum(pd.isna(df.region))
 
+        # Do the user - GP2 standards mapping
+        jumptwice()
         if nmiss>0:
             st.text(f'{nmiss} entries missing for region')
         mapdic = {'Not Reported':'Not Reported'}
-        jumptwice()
 
         if len(regions)>0:
             st.text('if ISO 3166-3 is available for the region, please provide')
             st.write('https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3')
-            def_code=st.text_input('You can set the default ISO 3166-3 here', key='iso3166', value='',  max_chars=3)
             n_rgs = st.columns(len(regions))
             for i, x in enumerate(n_rgs):
+                count_widget += 1
                 with x:
                     region = regions[i]
-                    region_index=region if region in allowed_region_codes else def_code
-                    region_to_map = x.text_input(f'[{region}] in 3 LETTERS', value=region_index, key=region, 
-                                                 max_chars=3)
-                    if len(region_to_map)>1:
-                        mapdic[region]=region_to_map
+                    region_index = allowed_region_codes.index(region) if region in allowed_region_codes else None
+                    mapdic[region]=x.selectbox(f'[{region}]: For QC, region',
+                                           options=allowed_region_codes, 
+                                           index=region_index,
+                                           key=count_widget)
+
         df['region_for_qc'] = df.region_for_qc.map(mapdic).fillna('Not Assigned')
 
-        # cross-tabulation
         st.text('=== region X  region_for_qc ===')
-        dft = df.copy()
-        dft['region'] = dft.region.fillna('Not Reported')
-        xtab = dft.pivot_table(columns='region_for_qc', index='region', margins=True,
-                                values='sample_id', aggfunc='count', fill_value=0)
-        st.table(xtab)
+        if any(value is not None for value in mapdic.values()):
+            dft = df.copy()
+            dft['region'] = dft.region.fillna('Not Reported')
+            xtab = dft.pivot_table(columns='region_for_qc', index='region', margins=True,
+                                    values='sample_id', aggfunc='count', fill_value=0)
+            st.table(xtab)
 
-        region_not_well_assigned=np.setdiff1d(df.region_for_qc.unique(), allowed_region_codes)
-
-        if len(region_not_well_assigned)>0:
-            st.error('Please make sure all samples assigned a 3-digit region code. If not available, please assign the 3-digit code for the principle research site.')
-            st.write(f'Need reviews: {region_not_well_assigned}')
-            st.stop()
-
-
+        # Confirm mapping looks good
+        region_not_well_assigned = np.setdiff1d(df.region_for_qc.unique(), allowed_region_codes) # This should not be necessary anymore, but leave it here for now
         rg_conf = st.checkbox('Confirm region_for_qc?')
         if rg_conf:
-            if len(regions)!=(len(mapdic)-1):
-                st.error('region not assigned.')
-                st.text("Please, assing the region, and re upload the sample manifest")
+            if len(region_not_well_assigned)>0:
+                st.error('Please make sure all samples assigned a 3-digit region code. If not available,\
+                         please assign the 3-digit code for the principle research site.')
+                st.error(f'Need reviews: {region_not_well_assigned}')
+                st.stop()
+            elif 'Not Assigned' in df.region_for_qc.unique():
+                st.error('Please assign the region for all the samples')
                 st.stop()
             else:
                 st.info('Thank you')
 
-        # Plate Info
+
+
+        ##################
+        ### PLATE INFO ###
+        ##################
         jumptwice()
         st.subheader('Plate Info')
         dft = df.copy()
@@ -594,7 +667,11 @@ def app():
         if len(show_all_duppos) > 0:
             st.stop()
 
-        # Numeric values
+
+
+        ##########################
+        ### CHECK NUMERIC COLS ###
+        ##########################
         jumptwice()
         st.subheader('Numeric Values')
         numerics_cols = ['DNA_volume', 'DNA_conc', 'r260_280','age', 'age_of_onset', 'age_at_diagnosis', 'age_at_last_follow_up','age_at_death']
@@ -630,6 +707,8 @@ def app():
                     st.write(fig)
                 jumptwice()
 
+
+        # Once all QC is done, we are are ready to finalise the process
         if st.button("Finished?"):
             #if not (clinical_conf & ph_conf & sex_conf & race_conf & fh_conf & rg_conf):
             if not (ph_conf & sex_conf & race_conf & fh_conf & rg_conf):
@@ -659,5 +738,3 @@ def app():
 
         jumptwice()
         st.markdown("<a href='#link_to_top'>Link to top</a>", unsafe_allow_html=True)
-
-# Test set up new phenos branch
