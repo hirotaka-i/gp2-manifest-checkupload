@@ -50,13 +50,13 @@ def app():
     fh_conf = ''
 
     # Columns 
-    cols = ['study','study_type', 'sample_id', 'sample_type',
+    cols = ['study_type', 'sample_id', 'sample_type',
             'DNA_volume', 'DNA_conc', 'r260_280',
             'Plate_name', 'Plate_position', 'clinical_id',
             'study_arm', 'diagnosis', 'sex', 'race',
             'age', 'age_of_onset', 'age_at_diagnosis', 'age_at_death', 'age_at_last_follow_up',
             'family_history', 'region', 'comment', 'alternative_id1', 'alternative_id2']
-    required_cols = ['study', 'study_type', 'sample_id', 'sample_type', 'clinical_id', 
+    required_cols = ['study_type', 'sample_id', 'sample_type', 'clinical_id', 
                      'study_arm', 'diagnosis', 'sex']
     fulgent_cols = ['DNA_volume', 'DNA_conc', 'Plate_name', 'Plate_position']
     
