@@ -352,6 +352,11 @@ def app():
 
         else:
             df = st.session_state['df_finalids']
+            #TODO
+            #There is the scenario in which genotyping site or study is changed after assigning GP2 IDs
+            # In this scenario, study and genotyping site variables would differ between df and st.session_state['df_finalids']
+            # GP2 IDs would refer to the wrong sudy as well
+            # We should add some code to consider this scenario
 
 
         # Plot the data
