@@ -616,6 +616,11 @@ def app():
         if len(regions)>0:
             st.text('if ISO 3166-3 is available for the region, please provide')
             st.write('https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3')
+
+            if 'Not Reported' in df['region_for_qc'].values:
+                st.warning("We have detectec missing values on region column")
+                st.warning("For the samples missing the region value, please select the ISO code od the STUDY SITE from the URL above")
+
             n_rgs = st.columns(len(regions))
             for i, x in enumerate(n_rgs):
                 count_widget += 1
