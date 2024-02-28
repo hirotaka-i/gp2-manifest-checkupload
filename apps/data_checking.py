@@ -210,7 +210,10 @@ def app():
             st.stop()
         else:
             st.markdown("**Study** successfully added to the sample manifest")
-        
+
+        # Adding sampe manifest version using URL data
+        if 'manifest_version' in st.experimental_get_query_params():
+           df['manifest_id'] = 'm' + str(st.experimental_get_query_params()['manifest_version'][0])
 
         # GP2 IDs assignment
         jumptwice()
