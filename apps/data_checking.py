@@ -214,6 +214,9 @@ def app():
         # Adding sampe manifest version using URL data
         if 'manifest_version' in st.experimental_get_query_params():
            df['manifest_id'] = 'm' + str(st.experimental_get_query_params()['manifest_version'][0])
+        else:
+            st.error("It seems we cannot assign the version of this manifest. \n Please contact cohort@gp2.org and report this issue")
+            st.stop()
 
         # GP2 IDs assignment
         jumptwice()
