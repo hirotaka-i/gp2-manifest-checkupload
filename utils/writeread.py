@@ -63,18 +63,18 @@ def to_excelv2(df,clin, dct):
     processed_data = output.getvalue()
     return processed_data, filename
 
-def to_excel(df, studycode, datatype = 'sm'):
+def to_excel(df, studycode, mv, datatype):
     """It returns an excel object sheet with the QC sample manifest
     and clinical data written in separate
     """
     today = dt.datetime.today()
     version = f'{today.year}{today.month}{today.day}'
-    #study_code = df.study.unique()[0]
     ext = "xlsx"
+
     if datatype == 'sm':
-        filename = "{s}_sample_manifest_selfQC_{v}.{e}".format(s=studycode, v = version, e = ext)
+        filename = "{s}_sample_manifest_selfQCV2_{v}_{m}.{e}".format(s=studycode, v = version, m = mv, e = ext)
     else:
-        filename = "{s}_clinial_data_selfQC_{v}.{e}".format(s=studycode, v = version, e = ext)
+        filename = "{s}_clinial_data_selfQC__{v}.{e}".format(s=studycode, v = version, e = ext)
     
     output = BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')

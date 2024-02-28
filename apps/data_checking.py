@@ -211,12 +211,15 @@ def app():
         else:
             st.markdown("**Study** successfully added to the sample manifest")
 
+
         # Adding sampe manifest version using URL data
         if 'manifest_version' in st.experimental_get_query_params():
-           df['manifest_id'] = 'm' + str(st.experimental_get_query_params()['manifest_version'][0])
+           mani_vers = 'm' + str(st.experimental_get_query_params()['manifest_version'][0])
+           df['manifest_id'] = 'm' + mani_vers
         else:
             st.error("It seems we cannot assign the version of this manifest. \n Please contact cohort@gp2.org and report this issue")
             st.stop()
+
 
         # GP2 IDs assignment
         jumptwice()
@@ -741,8 +744,12 @@ def app():
                 df = df.drop(columns=['CustomOrder'])
 
                 st.session_state['smqc'] = df
+                
                 st.markdown('<p class="medium-font"> CONGRATS, your sample manifest meets all the GP2 requirements. </p>', unsafe_allow_html=True )
-                writeexcel = to_excel(df, st.session_state['keepcode'], datatype = 'sm')
+                writeexcel = to_excel(df = df, 
+                                      studycode = st.session_state['keepcode'], 
+                                      mv = mani_vers,
+                                      datatype = 'sm')
                 st.download_button(label='📥 Download your QC sample manifest',
                                    data = writeexcel[0],
                                    file_name = writeexcel[1])
