@@ -619,7 +619,7 @@ def app():
 
             if 'Not Reported' in df['region_for_qc'].values:
                 st.warning("We have detectec missing values on region column")
-                st.warning("For the samples missing the region value, please select the ISO code od the STUDY SITE from the URL above")
+                st.warning("For the samples missing the region value, please select the ISO code that corresponds to your STUDY SITE from the URL above")
 
             n_rgs = st.columns(len(regions))
             for i, x in enumerate(n_rgs):
