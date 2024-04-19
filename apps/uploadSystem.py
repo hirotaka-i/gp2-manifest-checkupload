@@ -36,7 +36,7 @@ def app():
             n_cols = 7
         elif re.match('.*sample_manifest.*', file_name):
             whatfile = 'sampleManifest'
-            n_cols = 35
+            n_cols = 39
         else:
             st.error('This file does not seem to be QCed')
             st.error('Please go back to the sample manifest and/or clinical tab and QC your file')
