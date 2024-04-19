@@ -258,7 +258,7 @@ def app():
                 st.session_state['df_finalids'] = df
                 st.session_state['master_get'] = 'DONE'
             else:
-                st.write(" We have detectec a problem")
+                st.write(" We have detectec a problem looking for GP2 samples IDs for the sample manifest loaded")
                 st.write("Showing below the samples that should be in our system but are not")
                 aggridPlotter(missing_gp2ids[['study','study_type','sample_id','clinical_id']])
                 st.stop()
