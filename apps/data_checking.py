@@ -745,7 +745,7 @@ def app():
                 st.text("Please, make sure expected numeric columns are stored on a numeric format")
                 st.text(f'Expected columns in numeric format - \n * {numerics_cols}')
                 st.stop()
-            if (df['DNA_volume'] < 0).any():
+            if (df[v] < 0).any():
                 st.error(f'{v} has unexpected negative values.  Please correct the values we are showing above')
                 aggridPlotter(df[df[v] < 0][ ['study','study_type','sample_id','clinical_id'] + [v] ])
         st.text('Numeric chek --> OK.')
