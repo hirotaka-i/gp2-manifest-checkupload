@@ -60,7 +60,7 @@ def app():
                      'study_arm', 'diagnosis', 'sex']
     fulgent_cols = ['DNA_volume', 'DNA_conc', 'Plate_name', 'Plate_position']
     #monogenic_cols = ['family_index', 'family_index_relationship', 'age_of_onset', 'family_history_pd', 'family_history_pd_details']
-    monogenic_cols = ['age_of_onset', 'family_history_pd', 'family_index', 'family_index_relationship']
+    monogenic_cols = ['age_of_onset', 'family_history_pd']
 
     # Column values
     gptwo_phenos = ['PD', 'Control', 'Prodromal',
