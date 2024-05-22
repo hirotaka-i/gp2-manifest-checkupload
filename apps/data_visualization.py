@@ -16,8 +16,7 @@ from qcutils import data_naproc
 pd.set_option('display.max_rows', 1000)
 
 def app():
-    load_css("/app/apps/css/css.css")
-    #load_css("/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/css/css.css")
+    load_css("apps/css/css.css")
     st.markdown('<p class="big-font">GP2 Data Visualization Tool</p>', unsafe_allow_html=True)
     st.sidebar.title("Options")
 
@@ -28,7 +27,7 @@ def app():
             'hoehn_and_yahr_stage', 'mmse_total_score']
 
     #dict_mapper = pd.read_excel('/home/amcalejandro/Data/WorkingDirectory/Development_Stuff/GP2_SAMPLE_UPLOADER/sample_uploader/apps/data/dict_mapper.xlsx')
-    dict_mapper = pd.read_excel('/app/apps/data/dict_mapper.xlsx')
+    dict_mapper = pd.read_excel('apps/data/dict_mapper.xlsx')
     df_qc = None
 
     if not [x for x in (st.session_state['smqc'], st.session_state['clinqc']) if x is None]:

@@ -85,17 +85,43 @@ def detect_multiple_clindups(df):
   st.stop()
 
 
-def sample_type_fix(df, allowed_samples):
+# def sample_type_fix(df, allowed_samples):
+#   allowed_samples_strp = [samptype.strip().replace(" ", "") for samptype in allowed_samples]
+  
+#   sampletype = df.sample_type.copy()
+#   sampletype = sampletype.str.replace(" ", "")
+#   map_strip_orig = dict(zip(sampletype.unique(), df.sample_type.unique()))
+#   not_allowed_v2 = list(np.setdiff1d(sampletype.unique(), allowed_samples_strp))
+  
+#   if len(not_allowed_v2)>0:
+#     st.text('WE have found unknown sample types')
+#     st.text('Writing entries with sample_type not allowed')
+#     all_unknwown = []
+#     for stripval, origval in map_strip_orig.items():
+#       if stripval in not_allowed_v2:
+#         all_unknwown.append(origval)
+#     st.error(f'We could not find the following codes {all_unknwown}') 
+#     st.error(f'Printing the list of allowed samples types for reference {allowed_samples}')
+#     st.stop()
+#   else:
+#     st.text('We have found some undesired whitespaces in some sample type values')
+#     st.text('Processing whitespaces found in certain sample_type entries')
+#     stype_map = dict(zip(allowed_samples_strp, allowed_samples))
+#     newsampletype = sampletype.replace(stype_map)
+#     df['sample_type'] = newsampletype
+#     st.text('sample type count after removing undesired whitespaces')
+#     st.write(df.sample_type.astype('str').value_counts())
+def sample_type_fix(df, allowed_samples, col):
   allowed_samples_strp = [samptype.strip().replace(" ", "") for samptype in allowed_samples]
   
-  sampletype = df.sample_type.copy()
+  sampletype = df[col].copy()
   sampletype = sampletype.str.replace(" ", "")
-  map_strip_orig = dict(zip(sampletype.unique(), df.sample_type.unique()))
+  map_strip_orig = dict(zip(sampletype.unique(), df[col].unique()))
   not_allowed_v2 = list(np.setdiff1d(sampletype.unique(), allowed_samples_strp))
   
   if len(not_allowed_v2)>0:
-    st.text('WE have found unknown sample types')
-    st.text('Writing entries with sample_type not allowed')
+    st.text(f'WE have found unknown {col}')
+    st.text(f'Writing entries with {col} not allowed')
     all_unknwown = []
     for stripval, origval in map_strip_orig.items():
       if stripval in not_allowed_v2:
@@ -108,6 +134,42 @@ def sample_type_fix(df, allowed_samples):
     st.text('Processing whitespaces found in certain sample_type entries')
     stype_map = dict(zip(allowed_samples_strp, allowed_samples))
     newsampletype = sampletype.replace(stype_map)
-    df['sample_type'] = newsampletype
+    df[col] = newsampletype
     st.text('sample type count after removing undesired whitespaces')
-    st.write(df.sample_type.astype('str').value_counts())
+    st.write(df[col].astype('str').value_counts())
+
+  
+
+def create_survival_df(df, thres, direction, outcome):
+    # Create the event column based on the threshold
+    if direction == 'greater':
+        df['event'] = (df[outcome] >= thres).astype(int)
+    elif direction == 'less':
+        df['event'] = (df[outcome] <= thres).astype(int)
+    else:
+        raise ValueError('Invalid direction. Please choose either "greater" or "less".')
+    
+    df_cs = df[['GP2ID', 'clinical_id', 'GP2_phenotype', 'study_arm', 'study_type']].drop_duplicates()
+
+    # Get the first occurrence of the event if it occurred
+    df_event = df[df['event'] == 1].sort_values('visit_month').drop_duplicates(subset=['GP2ID'])
+    df_event['visit_month_event'] = df_event['visit_month']
+
+    # One survival observation per person approach
+    df_sv = df.groupby(['GP2ID'])['visit_month'].agg(visit_month_first='min', visit_month_last='max', n_obs='count').reset_index()
+    df_sv = df_sv.merge(df_event[['GP2ID', 'visit_month_event']], on='GP2ID', how='left')
+    df_sv['event'] = pd.notna(df_sv['visit_month_event']).astype(int)
+    df_sv['visit_month_censored'] = df_sv['visit_month_last'].where(pd.isna(df_sv['visit_month_event']), df_sv['visit_month_event'])
+    df_sv['censored_month'] = df_sv['visit_month_censored'] - df_sv['visit_month_first']
+    df_sv['follow_up_month'] = df_sv['visit_month_last'] - df_sv['visit_month_first']
+    
+    # Get the outcome score at the minimum and maximum visit_month
+    df_min_visit_month = df.groupby('GP2ID')[outcome].first().reset_index().rename(columns={outcome: 'score_first'})
+    df_max_visit_month = df.groupby('GP2ID')[outcome].last().reset_index().rename(columns={outcome: 'score_last'})
+    df_sv = df_sv.merge(df_min_visit_month, on='GP2ID', how='left')
+    df_sv = df_sv.merge(df_max_visit_month, on='GP2ID', how='left')
+    df_sv_return = pd.merge(df_cs, 
+                            df_sv[['GP2ID', 'n_obs', 'follow_up_month', 'visit_month_first',  'visit_month_last', 'score_first', 'score_last', 'event', 'censored_month']],
+                            on='GP2ID', how='left')
+
+    return df_sv_return

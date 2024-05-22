@@ -8,10 +8,15 @@ import datetime as dt
 
 #@st.cache(hash_funcs={'_json.Scanner': hash})
 #@st.experimental_memo()
+
+
+
+
 def update_masterids(ids_log, ids_dict, scode):
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
     blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
+    #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER_for_monogenic.json')
     #blob = bucket.blob('IDSTRACKER/TESTS_GP2IDSMAPPER.json')
     
     today = dt.datetime.today()
@@ -42,6 +47,7 @@ def master_key(studies):
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
     blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
+    #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER_for_monogenic.json')
     #blob = bucket.blob('IDSTRACKER/TESTS_GP2IDSMAPPER.json')
 
     ids_tracker = {}
@@ -59,6 +65,7 @@ def master_keyv2(studies):
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
     blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
+    #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER_for_monogenic.json')
     #blob = bucket.blob('IDSTRACKER/TESTS_GP2IDSMAPPER.json')
     ids_tracker = {}
     with blob.open("r") as f:
@@ -71,8 +78,9 @@ def master_keyv2(studies):
 def master_remove(studies, data):
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
-    blob = bucket.blob('IDSTRACKER/TESTS_GP2IDSMAPPER.json')
-    #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
+    #blob = bucket.blob('IDSTRACKER/TESTS_GP2IDSMAPPER.json')
+    #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER_for_monogenic.json')
+    blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
     
     with blob.open("r") as fp:
         masterids = json.load(fp)
