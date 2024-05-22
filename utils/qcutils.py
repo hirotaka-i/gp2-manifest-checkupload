@@ -137,3 +137,39 @@ def sample_type_fix(df, allowed_samples, col):
     df[col] = newsampletype
     st.text('sample type count after removing undesired whitespaces')
     st.write(df[col].astype('str').value_counts())
+
+  
+
+def create_survival_df(df, thres, direction, outcome):
+    # Create the event column based on the threshold
+    if direction == 'greater':
+        df['event'] = (df[outcome] >= thres).astype(int)
+    elif direction == 'less':
+        df['event'] = (df[outcome] <= thres).astype(int)
+    else:
+        raise ValueError('Invalid direction. Please choose either "greater" or "less".')
+    
+    df_cs = df[['GP2ID', 'clinical_id', 'GP2_phenotype', 'study_arm', 'study_type']].drop_duplicates()
+
+    # Get the first occurrence of the event if it occurred
+    df_event = df[df['event'] == 1].sort_values('visit_month').drop_duplicates(subset=['GP2ID'])
+    df_event['visit_month_event'] = df_event['visit_month']
+
+    # One survival observation per person approach
+    df_sv = df.groupby(['GP2ID'])['visit_month'].agg(visit_month_first='min', visit_month_last='max', n_obs='count').reset_index()
+    df_sv = df_sv.merge(df_event[['GP2ID', 'visit_month_event']], on='GP2ID', how='left')
+    df_sv['event'] = pd.notna(df_sv['visit_month_event']).astype(int)
+    df_sv['visit_month_censored'] = df_sv['visit_month_last'].where(pd.isna(df_sv['visit_month_event']), df_sv['visit_month_event'])
+    df_sv['censored_month'] = df_sv['visit_month_censored'] - df_sv['visit_month_first']
+    df_sv['follow_up_month'] = df_sv['visit_month_last'] - df_sv['visit_month_first']
+    
+    # Get the outcome score at the minimum and maximum visit_month
+    df_min_visit_month = df.groupby('GP2ID')[outcome].first().reset_index().rename(columns={outcome: 'score_first'})
+    df_max_visit_month = df.groupby('GP2ID')[outcome].last().reset_index().rename(columns={outcome: 'score_last'})
+    df_sv = df_sv.merge(df_min_visit_month, on='GP2ID', how='left')
+    df_sv = df_sv.merge(df_max_visit_month, on='GP2ID', how='left')
+    df_sv_return = pd.merge(df_cs, 
+                            df_sv[['GP2ID', 'n_obs', 'follow_up_month', 'visit_month_first',  'visit_month_last', 'score_first', 'score_last', 'event', 'censored_month']],
+                            on='GP2ID', how='left')
+
+    return df_sv_return
