@@ -43,8 +43,13 @@ def app():
         if len(re.findall(r'-', st.session_state['keepcode']))>0:
             study_name = st.session_state['keepcode'].split('-')[0]
     
-    cols =  ['clinical_id', 'visit_month', 'hoehn_and_yahr_stage']
-    required_cols =  ['clinical_id', 'visit_month', 'hoehn_and_yahr_stage']
+    cols = ['study', 'sample_id', 'visit_month',
+            'mds_updrs_part_iii_summary_score',
+            'moca_total_score', 'hoehn_and_yahr_stage',
+            'mmse_total_score']
+
+    required_cols = ['study', 'sample_id', 'visit_month']
+
 
     if data_file is not None:
         st.markdown('<p class="big-font">Clinical data QC </p>', unsafe_allow_html=True)
