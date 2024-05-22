@@ -748,6 +748,7 @@ def app():
             if (df[v] < 0).any():
                 st.error(f'{v} has unexpected negative values.  Please correct the values we are showing above')
                 aggridPlotter(df[df[v] < 0][ ['study','study_type','sample_id','clinical_id'] + [v] ])
+                st.stop()
         st.text('Numeric chek --> OK.')
         st.text('You can check the distribution with the button below')
         if st.button("Check Distribution"):
