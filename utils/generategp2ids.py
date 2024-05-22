@@ -15,8 +15,8 @@ import datetime as dt
 def update_masterids(ids_log, ids_dict, scode):
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
-    #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
-    blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER_for_monogenic.json')
+    blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
+    #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER_for_monogenic.json')
     #blob = bucket.blob('IDSTRACKER/TESTS_GP2IDSMAPPER.json')
     
     today = dt.datetime.today()
@@ -46,8 +46,8 @@ def master_key(studies):
     # ACCESS MASTERGP2IDS_JSON IN GP2 BUCKET
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
-    #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
-    blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER_for_monogenic.json')
+    blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
+    #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER_for_monogenic.json')
     #blob = bucket.blob('IDSTRACKER/TESTS_GP2IDSMAPPER.json')
 
     ids_tracker = {}
@@ -64,8 +64,8 @@ def master_keyv2(studies):
     # ACCESS MASTERGP2IDS_JSON IN GP2 BUCKET
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
-    #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
-    blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER_for_monogenic.json')
+    blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
+    #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER_for_monogenic.json')
     #blob = bucket.blob('IDSTRACKER/TESTS_GP2IDSMAPPER.json')
     ids_tracker = {}
     with blob.open("r") as f:
@@ -79,8 +79,8 @@ def master_remove(studies, data):
     client = storage.Client()
     bucket = client.get_bucket('eu-samplemanifest')
     #blob = bucket.blob('IDSTRACKER/TESTS_GP2IDSMAPPER.json')
-    blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER_for_monogenic.json')
-    #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
+    #blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER_for_monogenic.json')
+    blob = bucket.blob('IDSTRACKER/GP2IDSMAPPER.json')
     
     with blob.open("r") as fp:
         masterids = json.load(fp)
